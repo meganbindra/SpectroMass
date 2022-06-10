@@ -17,7 +17,7 @@ from datetime import datetime
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
 from tkinter import ttk
-from tkinter import *
+from tkinter import *                           # what's the point of the import right above this one?
 from collections.abc import Iterable
 from bokeh.models import ColumnDataSource, Whisker, HoverTool, Legend, LegendItem
 from bokeh.plotting import figure, show
@@ -27,6 +27,7 @@ from bokeh.palettes import Category20b, Category20c
 from bokeh.transform import dodge
 
 LARGE_FONT= ("Verdana", 12)
+
 
 """
 APP
@@ -39,6 +40,7 @@ Uses tkinter to build application and contains trait 'frames', for buttons, etc.
 """
 class App(tk.Tk):
 
+    # not sure what expgroup is...
     msalign_filearray, processed_filearray, expgroup = [], [], [] #msalign_filearray is a 1D array [uniqueID#1, filename#1, uniqueID#2, filename#2,...]
     total_files = 0
 
@@ -48,29 +50,29 @@ class App(tk.Tk):
         tk.Tk.wm_title(self,"Mass Finder and Quantifier")       # window title
 
         container = tk.Frame(self)
-        container.grid(column=0, row=0, sticky='news')          # ?
+        container.grid(column=0, row=0, sticky='news')          # sticky='news'? prob in tkinter
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        self.geometry("1280x740")
+        self.geometry("1280x740")                               # sets size of window the app is in
 
-        self.frames = {}
+        self.frames = {}                                        # App's frames will be in an array, starts empty
 
         for F in (StartPage, FileSelection, SearchParams, QuantOutput, QCGraphs):
 
-            frame = F(container, self)
+            frame = F(container, self)                          # For each 'page' create a frame, but what exactly is this?
 
-            self.frames[F] = frame
+            self.frames[F] = frame                              # add to App's array self.frames
 
-            frame.grid(row=0, column=0, sticky="nsew")          # ?
+            frame.grid(row=0, column=0, sticky="nsew")          # sticky='nsew'?
 
-        self.show_frame(StartPage)
+        self.show_frame(StartPage)                              # once all pages created, show start page
 
-    def show_frame(self, cont):
+    def show_frame(self, cont):                                 # fn to show frames, used when switching pages
 
         frame = self.frames[cont]
         frame.tkraise()
 
-    def new_analysis(self):
+    def new_analysis(self):                                     # fn to perform new analysis, essentially restarts the app
         app = App()
         app.mainloop()
 
@@ -81,7 +83,7 @@ Builds 'Start Page' with all its buttons.
 """
 class StartPage(tk.Frame):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller):                             # just makes buttons to take you to each page
 
         tk.Frame.__init__(self,parent)
         label = tk.Label(self, text="Start Page", font=LARGE_FONT)
@@ -115,45 +117,47 @@ class FileSelection(tk.Frame):
 
     gridrow = 4
     gridcolumn = 0
-    button_identities,filelabel_identities,group_identities = [],[],[]
+    button_identities,filelabel_identities,group_identities = [],[],[]          # button, file, & group ids start as empty lists
+                                                                                # still not sure what groups are
 
     def __init__(self, parent, controller):
 
         tk.Frame.__init__(self, parent)
 
-        label = tk.Label(self, text="MS1 File Selection", font=LARGE_FONT)
+        label = tk.Label(self, text="MS1 File Selection", font=LARGE_FONT)                  # button to select/upload new file
         label.grid(column=0, row=0, sticky='w')
 
-        button2 = tk.Button(self, text="New Analysis",
+        button2 = tk.Button(self, text="New Analysis",                                                  # button to perform new analysis
                             command=lambda: controller.new_analysis())
         button2.grid(column=1, row=1, sticky='w')
 
-        addbutton = tk.Button(self, text='Add File',  fg="green", command=(lambda : self.msalignfile()))
+        addbutton = tk.Button(self, text='Add File',  fg="green", command=(lambda : self.msalignfile()))        # button to add file
         addbutton.grid(column=0, row=2,sticky='w')
 
         self.controller = controller
 
-    def msalignfile(self):
+    def msalignfile(self):                                                          # fn to upload a new msalign file, called when button pressed
 
-        if App.total_files > 20:                        # max 20 files - why?
+        if App.total_files > 20:                                                    # max 20 files - why?
             mb.showerror("Warning","Cannot load more files. Maximum files (20) reached.")
         else:
-            filename = fd.askopenfilename(filetypes=[('All files','*.*')],
+            filename = fd.askopenfilename(filetypes=[('All files','*.*')],          # fd = filedialogue (from tkinter)
                                          title='Please select an MS1 MSALIGN file')
-            if filename != "":
+            if filename != "":                                                      # as long as file has a name, label it by that name
                 filelabel = Label(self, text = 'File: '+filename)
                 filelabel.grid(row=FileSelection.gridrow, column=FileSelection.gridcolumn, sticky='w')
-                FileSelection.filelabel_identities.append(filelabel)
+                FileSelection.filelabel_identities.append(filelabel)                # add file label to list of file label ids
 
+                # what are groups?? i guess files are grouped somehow...
                 group_label_entry = tk.Entry(self, width=13)
-                group_label_entry.grid(row=FileSelection.gridrow, column=int(FileSelection.gridcolumn)+1, sticky='w')
-                group_label_entry.insert(0,'<exp. group>')
+                group_label_entry.grid(row=FileSelection.gridrow, column=int(FileSelection.gridcolumn)+1, sticky='w')   # same row, next column
+                group_label_entry.insert(0,'<exp. group>')                          # not sure what this is?
                 FileSelection.group_identities.append(group_label_entry)
 
-                # removebutton removes a file before uploading?
+                # removebutton removes a file after processing and before uploading? so we create a button *for each* file we upload
                 removebutton = tk.Button(self, text='X', fg="red", command=(lambda : Xclick(filelabel,removebutton,group_label_entry)))
                 removebutton.grid(row=FileSelection.gridrow, column=int(FileSelection.gridcolumn)+2)
-                FileSelection.button_identities.append(removebutton)
+                FileSelection.button_identities.append(removebutton)                                        # this adds the button to list of button ids
 
                 FileSelection.gridrow += 1
                 App.msalign_filearray.append(filelabel)
@@ -222,10 +226,10 @@ displays "Static", but if you click on it you can change it to "Dynamic",
 which allows the user to search by mass range. 
 """
 class SearchParams(tk.Frame):
-    abrv_filenames = [] #abbreviate filenames for display purposes
-    entries = []
-    dynamic_entries = [] #('file name1', ('start ret time1', entry1),('end ret time1, entry1'),'file name2',...)
-    dynamic_counter = 1 #this will be used for file-specific search conditions (e.g., retention times)
+    abrv_filenames = []             # abbreviate filenames for display purposes
+    entries = []                    # actual entries (to ?) 
+    dynamic_entries = []            # ('file name1', ('start ret time1', entry1),('end ret time1, entry1'),'file name2',...)
+    dynamic_counter = 1             # this will be used for file-specific search conditions (e.g., retention times)
 
     def __init__(self, parent, controller):
 
@@ -550,8 +554,8 @@ class SearchParams(tk.Frame):
 
 
         QCGraphs.graph_found_masses, QCGraphs.masses, QCGraphs.mass_tolerance = graph_found_masses, masses, mass_tolerance
-        qc_graph_result = [graph_found_masses, masses ,mass_tolerance]
-        QCGraphs.total_qc_graph_array.append(qc_graph_result)
+        qc_graph_result = [graph_found_masses, masses, mass_tolerance]              # qc_graph_result = [graph_found_masses, masses, mass tolerance]
+        QCGraphs.total_qc_graph_array.append(qc_graph_result)                       # QCGraphs.total_qc_graph_array[0][2] = qc_graph_result?
 
     def mass_quantification(self,found_masses,masses, mass_tolerance):
         summed_intensities = []
@@ -584,7 +588,7 @@ Take info from uploaded MSAlign files alongside input from user to calculate dat
 class QuantOutput(tk.Frame):
     averaged_data = [] #[[averages],[stdev]]
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller):                                 # creating buttons for quant output: output, calc data, search params
 
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Results Output", font=LARGE_FONT)
@@ -689,7 +693,7 @@ class QCGraphs(tk.Frame):
     total_qc_graph_array = [] #([[graph_found_masses, masses ,mass_tolerance],...])
     calc_avg_stdev = []
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller):                             # creating buttons for graphs page: show graphs, search params, new analysis
 
 
         tk.Frame.__init__(self, parent)
@@ -711,7 +715,7 @@ class QCGraphs(tk.Frame):
 
     def makegraph(self):
 
-        max_graphs = len(QCGraphs.total_qc_graph_array[0][1])
+        max_graphs = len(QCGraphs.total_qc_graph_array[0][1])                   # user defined search masses
         qc_plots, group_plots, str_mass_names = [],[],[]
 
         #change font size for QC graphs depending on number of masses
@@ -750,18 +754,18 @@ class QCGraphs(tk.Frame):
                 upper.append(group_data[1][0][i]+group_data[1][1][i]) #average value for a mass i + stdev
                 group_name.append(group_data[0])
 
-            color_palette = Category20c[20]
-            if color_selection == 19:
+            color_palette = Category20c[20]                             # color palette 
+            if color_selection == 19:                                   # once all colors used, reset & cycle back
                 color_palette = Category20b[20]
                 color_selection = 0
 
 
 
             data = {"x": QCGraphs.masses,
-                    "lower": lower,
-                    "upper": upper,
-                    "top": group_data[1][0],
-                    "desc": group_name}
+                    "lower": lower,                                     # can we just do this in a for loop
+                    "upper": upper,                                     # with the calculations in the for loop above
+                    "top": group_data[1][0],                            # and just get rid of the lower & upper vars
+                    "desc": group_name}                                 # and the for loop up there
 
             source = ColumnDataSource(data=data)
 
@@ -783,24 +787,24 @@ class QCGraphs(tk.Frame):
                        active_scroll="wheel_zoom",y_axis_label="Intensity", tooltips=TOOLTIPSQC, active_drag="box_zoom", plot_width=1080, plot_height=740)
             offset = .25
             v=[]
-            for i in QCGraphs.masses:
-                ret_time = []
+            for i in QCGraphs.masses:                           # for each mass... is this ret time?
+                ret_time = []                                   # create empty arrays for ret_time, intensity, and mass
                 intensity = []
                 mass = []
 
-                if color_selection == 19:
-                    color_palette = Category20b[20]
+                if color_selection == 19:                       # if reached end of color options
+                    color_palette = Category20b[20]             # reset & cycle back
                     color_selection = 0
 
                 for k in j[0]:              # j[0] is [graph_found_masses] of msalign file j and k is [ret. time, mass, intensity]
                     if (k[1] - QCGraphs.total_qc_graph_array[0][2]) <= i <= (k[1] + QCGraphs.total_qc_graph_array[0][2]):
-                        ret_time.append(k[0])
+                        ret_time.append(k[0])                   # if ret_time - ? <= mass??
                         mass.append(k[1])
                         intensity.append(k[2])
                 mass_coord = [ret_time,mass,intensity]
-                mass_coord = np.array(mass_coord)
+                mass_coord = np.array(mass_coord)               # what is this? couldn't find np
 
-                if len(mass_coord[0]) >=1:
+                if len(mass_coord[0]) >=1:                      # if mass_coord nonempty
                     color_selection+=1
 
                     data = {"x": mass_coord[0],
@@ -821,8 +825,8 @@ class QCGraphs(tk.Frame):
             del p
 
         date = datetime.today().strftime('%Y%m%d_%H%M%S')
-        filename = "MS1_quant_graphs"+"_"+date+".html"
-        output_file(filename)
+        filename = "MS1_quant_graphs"+"_"+date+".html"      # names qcgraph file by date
+        output_file(filename)                               # from bokeh, outputs file containing quant graphs 
 
         # make a grid
         grid = gridplot([[averaged_plot,None],qc_plots], merge_tools = False, toolbar_location="left", plot_width=800, plot_height=500)
