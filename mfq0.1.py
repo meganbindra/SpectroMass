@@ -1,30 +1,80 @@
 import numpy as np
+    # numpy: for working with arrays
+    # append, reshape, array
 import tkinter as tk
-import time, sys
-import matplotlib
+    # tkinter: for Tcl/Tk GUI toolkit (standard, not necessarily best?)
+    # Frame, Button, Label, Entry, Checkbutton
+import time, sys    # -----------------------------------------------------------------> import time?
+    # time: for time-related functions, such as strptime() used in output_quant_file and qc_graph
+    # sys: to access system-specific parameters and functions, i/o
+        # seemse like it's only being used for one output line, which is commented out
+import matplotlib                               ''' remove and test '''
 import matplotlib.pyplot as plt
+    # pyplot: makes matplotlib work like matlab, used for plotting qc graphs
 import matplotlib.backends._tkagg
 matplotlib.use("TkAgg")
+    # backends._tkagg: to use matplotlib with tkinter, more imports from here below
 from matplotlib import style
 style.use('ggplot')
-import os, time
+    # style: used to customized appearance of plots,
+    # ggplot: a style that emulates the ggplot package for R
+import os, time     # -----------------------------------------------------------------> import time?
+    # os: "provides a portable way of using operation system dependent functionality"
+    # i'm guessing these are just used to access the date&time on the computer, for plotting?
 import statistics
-
+    # statistics: don't think we need everything in here, just pstdev and mean
+    # used in calculate_avg_stdev() in QuantOutput
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    # FigureCanvasTkAgg: interface between the Figure and Tkinter Canvas
+    # NavigationToolbar2Tk: built-in toolbar for the figure on the graph
+    # these make the graph interactive as desired
+    # in makegraph(), specifications for toolbar are passed in as parameters
 from matplotlib.figure import Figure
-from operator import itemgetter, attrgetter
+    # Figure: contains all plot elements, used to control spacing of subplots & container
+    # needed for multiple qc graphs in case of multiple msalign file uploads
+from operator import itemgetter, attrgetter         # not sure how/where these are used
+    # itemgetter: constructs a callable that assumes an iterable object and returns the nth element
+    # attrgetter: returns a callable object that fetches one/more attributes from its operand
 from datetime import datetime
+    # datetime: such as datetime, used in output_quant_file and qc_graphs
 from tkinter import filedialog as fd
+    # filedialog: provides a set of dialogs to use when working with file, such as open, save, etc.
+    # used askopenfilename once in msalignfile() in FileSelection
 from tkinter import messagebox as mb
+    # messagebox: provides a template base class for messageboxes
+    # used to display error messages during file uploads
 from tkinter import ttk
-from tkinter import *                           # what's the point of the import right above this one?
+    # ttk: provides acces to Tk themed widge set - buttons, etc.
+from tkinter import *                           ''' remove and test '''
 from collections.abc import Iterable
+    # Iterable: provides abstract base classes that can be used to test whether a class
+    # provides a particular interface, so like issubclass() or isinstance()
 from bokeh.models import ColumnDataSource, Whisker, HoverTool, Legend, LegendItem
+    # ColumnDataSource: provides data to the glyphs of plot so you can pass in lists, etc.
+    # Whisker: adds a whisker for error margins
+    # HoverTool: passive inspector tool, for actions to occur when cursor hovering
+    # Legend: allows us more advanced control of the legend object provided by bokeh for the graphs
+    # LegendItem: set True to have legend visible, False to hide legend
 from bokeh.plotting import figure, show
+    # figure: a function that creates a Figure model, which composes axes, grids, default tools, etc.
+    # and includes methods for adding different kinds of glyphs (shapes & things) to a plot
+    # show: displays the figure
 from bokeh.layouts import gridplot
+    # gridplot: a function which arranges bokeh plots in a grid and merges all plot tools into a single
+    # toolbar so that each plot int he grid has the same active tool
 from bokeh.io import output_file
+    # output_file: configures the default output state to generate output saved to a file when show()
+    # is called
 from bokeh.palettes import Category20b, Category20c
+    # Category20b: 4 purple, 4 green, 4 brown, 4 red, 4 pink
+    # Category20c: 4 blue, 4 orange, 4 green, 4 purple, 4 grey
 from bokeh.transform import dodge
+    # dodge: creates a DataSpec dict that applies a client-side Dodge transformation to a
+    # ColumnDataSoure column. has parameters:
+        # field_name (str) - a field name to configure DataSpec with
+        # value (float) - the fixed offset to add to column data
+        # range (Range, optional) - a range to use for computing synthetic coordinates when necessary,
+        # e.g. a FactorRange when the column data is categorical
 
 LARGE_FONT= ("Verdana", 12)
 
