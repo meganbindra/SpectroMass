@@ -75,11 +75,11 @@ def EnvelopeHistogram(df_ms1ft):
     for distribution in envelope:                       # for each data point in Envelope, I think a list [a,b;c,d;e,f;...]?
         v=[]                                                    # create an empty array
         for idx, val in enumerate(distribution):                # iterate through... each pair a,b in the list? no
-            if val == ',':                                          # , implies second element in the same pair, add data as int to carb isotope array
+            if val == ',':                                          # , follows first element, add stuff in convert as int to isotope array
                 link = "".join(convert)                                 ''' not sure what this is doing. can we remove this '''
                 carb_isotope.append(int(link))                          ''' and do carb_isotope.append(int(convert)) here? '''
                 convert = []
-            elif val == ';':                                        # ; implies new pair, first element, add data as float to carb abundance array
+            elif val == ';':                                        # ; follows second element, add stuff in convert as float to abundance array
                 link = "".join(convert)                                 ''' same here '''
                 carb_abundance.append(float(link))                      ''' same here '''
                 convert = []
