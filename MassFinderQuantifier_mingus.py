@@ -1,3 +1,4 @@
+import timeit
 import numpy as np
     # numpy: for working with arrays
     # append, reshape, array
@@ -8,7 +9,7 @@ import time, sys    # ----------------------------------------------------------
     # time: for time-related functions, such as strptime() used in output_quant_file and qc_graph
     # sys: to access system-specific parameters and functions, i/o
         # seemse like it's only being used for one output line, which is commented out
-import matplotlib                               ''' remove and test '''
+import matplotlib                               # remove and test
 import matplotlib.pyplot as plt
     # pyplot: makes matplotlib work like matlab, used for plotting qc graphs
 import matplotlib.backends._tkagg
@@ -45,7 +46,7 @@ from tkinter import messagebox as mb
     # used to display error messages during file uploads
 from tkinter import ttk
     # ttk: provides acces to Tk themed widge set - buttons, etc.
-from tkinter import *                           ''' remove and test '''
+from tkinter import *                           # remove and test
 from collections.abc import Iterable
     # Iterable: provides abstract base classes that can be used to test whether a class
     # provides a particular interface, so like issubclass() or isinstance()
@@ -164,7 +165,6 @@ and one for "Add File".
 - can add max of 20 files
 """
 class FileSelection(tk.Frame):
-
     gridrow = 4
     gridcolumn = 0
     button_identities,filelabel_identities,group_identities = [],[],[]          # button, file, & group ids start as empty lists
@@ -186,9 +186,10 @@ class FileSelection(tk.Frame):
 
         self.controller = controller
 
-    def msalignfile(self):                                                          # fn to upload a new msalign file, called when button pressed
 
-        if App.total_files > 20:                                                    # max 20 files - why?
+    # MSALIGNFILE: fn to upload a new msalign file, called when button pressed
+    def msalignfile(self):
+        if App.total_files > 20:                                                    # max 20 files - temporary
             mb.showerror("Warning","Cannot load more files. Maximum files (20) reached.")
         else:
             filename = fd.askopenfilename(filetypes=[('All files','*.*')],          # fd = filedialogue (from tkinter)
@@ -215,16 +216,29 @@ class FileSelection(tk.Frame):
 
                 App.total_files+=1
 
-            #only process files when there are files to process
+            # timing has to start after user interaction so I guess I'll start it here...
+            start_time = timeit.default_timer()
+                
+            # only process files when there are files to process
             if len(App.msalign_filearray) == 2:                             # what's happening here? why do we need 2?
                 processbutton = tk.Button(self, text='Process File(s)', name='processbutton',  fg="green", command=(lambda : populate_entries()))
                 processbutton.grid(column=0, row=20, sticky='w')
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('Fileselection \t msalignfile \t\t\t', total_time)
+        with open("timing_0_msalignfile_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
 
-        #This function removes the file name from the array and destroys the label and corresponding
-        #removal button. It uses the tkinter name for the button (e.g., !button) to identify which
-        #button was clicked and the corresponding label and file name to remove.
+
+        # XLICK: removes the file name from the array and destroys the label and corresponding
+        # removal button. It uses the tkinter name for the button (e.g., !button) to identify which
+        # button was clicked and the corresponding label and file name to remove.
         def Xclick(filelabel,removebutton,group_label_entry):
+            # timing
+            start_time = timeit.default_timer()
+            
             #n = FileSelection.filelabel_identities.index(filelabel)
             filelabel.destroy()
             removebutton.destroy()
@@ -244,7 +258,20 @@ class FileSelection(tk.Frame):
             if len(App.msalign_filearray) == 0:
                 self.nametowidget('processbutton').destroy()
 
+            # timing
+            total_time = timeit.default_timer() - start_time
+            print('FileSelection \t Xclick \t\t\t', total_time)
+            with open("timing_0_Xclick_blah.csv", "a") as out_file:
+                out_file.write(str(total_time))
+                out_file.write("\n")
+
+
+        # POPULATE_ENTRIES: used to populate entries & defaults for user-defined variables
+        # (changeable options in static and dynamic modes). no actual user input here.
         def populate_entries():
+            # timing
+            start_time = timeit.default_timer()
+            
             for group in self.group_identities:
                 group_name = group.get()
                 App.expgroup.append(group_name)
@@ -267,6 +294,14 @@ class FileSelection(tk.Frame):
 
             self.controller.show_frame(SearchParams)
 
+            # timing
+            total_time = timeit.default_timer() - start_time
+            print('FileSelection \t populate_entries \t\t', total_time)
+            with open("timing_0_populate_entries_blah.csv", "a") as out_file:
+                out_file.write(str(total_time))
+                out_file.write("\n")
+
+
 """
 SEARCH PARAMS
 Clicking "Search Parameters" on the 'Start Page' leads to the
@@ -282,7 +317,6 @@ class SearchParams(tk.Frame):
     dynamic_counter = 1             # this will be used for file-specific search conditions (e.g., retention times)
 
     def __init__(self, parent, controller):
-
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Search Parameters", font=LARGE_FONT)
         label.grid(column=0, row=0, sticky='w')
@@ -311,15 +345,18 @@ class SearchParams(tk.Frame):
         self.e=StringVar()
         self.e.set("Loading")
 
+    # GET_PARAMETERS: takes user input for user-defined variables (parameters) in static and dynamic mode.
+    # timing: get_parameters and change_range have too much user input for me to time
     def get_parameters(self,*args):
         SearchParams.entries = []
         SearchParams.dynamic_entries = []
 
+        # CHANGE_RANGE: switches between static and dynamic mode, displaying the appropriate entries for
+        # the user-defined variables in each mode
         def change_range(self,*args):   # changes to dynamic mode
-
             print('mass_range get',self.mass_range.get())
             if self.mass_range.get() == 1:  # if "search by mass range" selected, display this for input
-                self.mass_field.config(text = 'Mass range (min, max, interval): ')\
+                self.mass_field.config(text = 'Mass range (min, max, interval): ')
                 self.mass_max.grid(row=3, column=2,sticky='news')
                 self.mass_interval.grid(row=3, column=3,sticky='news')
 
@@ -327,7 +364,6 @@ class SearchParams(tk.Frame):
                 self.mass_max.grid_forget()     # TODO what is this
                 self.mass_interval.grid_forget()
                 self.mass_field.config(text = 'Masses: ')
-
 
         if self.search_optn.get() == "Static":  # in static mode
             for child in self.entry_frame.winfo_children():         # not sure what this is
@@ -412,12 +448,15 @@ class SearchParams(tk.Frame):
                 i+=1
 
 
-    def process_msalign_files(self):
+    # PROCESS_MSALIGN_FILES: this one's really in the name
+    def process_msalign_files(self):      
         error = False                                                   # start w/no error
 
         if len(App.msalign_filearray) == 0:                             # nothing uploaded error
             mb.showerror("Warning","There are no files to process.")
 
+        # timing
+        start_time = timeit.default_timer()
         if self.search_optn.get() == "Static":
             for field in SearchParams.entries:                          # in static mode,
                 if len(field[1].get()) == 0:                            # check each field is filled out otherwise error
@@ -449,9 +488,27 @@ class SearchParams(tk.Frame):
             self.loading.destroy()
             self.controller.show_frame(QuantOutput) #When all the calculations are complete, destroy & move to the next analysis page.
 
+        # timing - changed print and output to diff files to see static vs. dynamic
+        total_time = timeit.default_timer() - start_time
 
+        if self.search_optn.get() == "Static":
+            print('SearchParams \t process_static_msalign_files \t', total_time)
+            with open("timing_0_process_static_msalign_files_blah.csv", "a") as out_file:
+                out_file.write(str(total_time))
+                out_file.write("\n")
+
+        if self.search_optn.get() == "Dynamic":
+            print('SearchParams \t process_dynamic_msalign_files \t', total_time)
+            with open("timing_0_process_static_dynamic_files_blah.csv", "a") as out_file:
+                out_file.write(str(total_time))
+                out_file.write("\n")
+
+        
+    # UPDATE_PROGRESS: updates progress as msalign files are being processed in function above
     def update_progress(self,progress):     # update user on progress using progress bar & message updates
-
+        # timing
+        start_time = timeit.default_timer()
+        
         barLength = 15 # Modify this to change the length of the progress bar
         status = ""
         if isinstance(progress, int):
@@ -470,7 +527,19 @@ class SearchParams(tk.Frame):
         self.e.set(progresstext)
         #sys.stdout.write(progresstext)
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('SearchParams \t update_progress \t\t', total_time)
+        with open("timing_0_update_progress_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+
+
+    # PROCESS: processes data in msalign files to be used for calculations?
     def process(self,filename):         # TODO confused
+        # timing
+        start_time = timeit.default_timer()
+        
         #For each scan, the format is [ID,SCANS,RETENTION_TIME,[ARRAY OF MS1 IONS]]
         #The array of MS1 ions is [Mass,Intensity,Charge]
         global scan_ions #for now, leave global, but this will be a passed array eventually                 # ???
@@ -481,8 +550,8 @@ class SearchParams(tk.Frame):
         convert = []
         lines = []
 
+        # RMV_CHARS: takes a string and returns the string with all numbers and periods removed
         def rmv_chars(string):
-
             getVals = list([val for val in string
                 if (val.isnumeric() or val==".")])
             return "".join(getVals)                 # joins characters connected by a ".", that is, removes "."?
@@ -526,7 +595,19 @@ class SearchParams(tk.Frame):
         #The array of MS1 ions is [Mass,Intensity,Charge]                                                       # !!!!!!!!!!!!!!!!!!!!!!!!!!!
         SearchParams.mass_selection(self,scan_ions) #forced pass, will change later to be user-controlled       # !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('SearchParams \t process \t\t\t', total_time)
+        with open("timing_0_progress_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+
+
+    # MASS_SELECTION
     def mass_selection(self,scan_ions):
+        # timing
+        start_time = timeit.default_timer()
+        
         masses = []
         input_masses = [0]
 
@@ -607,7 +688,19 @@ class SearchParams(tk.Frame):
         qc_graph_result = [graph_found_masses, masses, mass_tolerance]              # qc_graph_result = [graph_found_masses, masses, mass tolerance]
         QCGraphs.total_qc_graph_array.append(qc_graph_result)                       # QCGraphs.total_qc_graph_array[0][2] = qc_graph_result?
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('SearchParams \t mass_selection \t\t', total_time)
+        with open("timing_0_mass_selection_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+
+
+    # MASS_QUANTIFICATION
     def mass_quantification(self,found_masses,masses, mass_tolerance):
+        # timing
+        start_time = timeit.default_timer()
+        
         summed_intensities = []
         total_intensity = 0
         percent_intensities = []
@@ -630,6 +723,14 @@ class SearchParams(tk.Frame):
         else:                                                                       # if total intensity not positive, no masses found
             mb.showerror("Warning","No masses found for one or more of the inputted files.")
             self.controller.show_frame(SearchParams)
+
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('SearchParams \t mass_quantification \t\t', total_time)
+        with open("timing_0_mass_quantification_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+
 
 """
 QUANT OUTPUT
@@ -654,9 +755,14 @@ class QuantOutput(tk.Frame):
 
         self.controller = controller
 
+
+    # ANALYZE_DATA: resetructures data to calculate average & standard deviation
     def analyze_data(self):     # TODO why are we sorting data to send to QC graph instead of restructuring the input for that fn
+        # timing
+        start_time = timeit.default_timer()
+        
         restructured_data, grouped_data,calc_avg_stdev, temp_array = [],[],[],[]
-        print('len of processed_filearray, exgroup = ',len(App.processed_filearray),len(App.expgroup))
+##        print('len of processed_filearray, exgroup = ',len(App.processed_filearray),len(App.expgroup))
         processed_filearray_temp = App.processed_filearray
         expgroup_temp = App.expgroup
 
@@ -693,8 +799,19 @@ class QuantOutput(tk.Frame):
         self.output_quantification_file()
         self.controller.show_frame(QCGraphs)
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('QuantOutput \t analyze_data \t\t\t', total_time)
+        with open("timing_0_analyze_data_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
 
+
+    # CALCULATE_AVG_STDEV
     def calculate_avg_stdev(self,grouped_data):
+        # timing
+        start_time = timeit.default_timer()
+        
         averaged_values = []
         stdev_values = []
         mass_array = []
@@ -708,7 +825,7 @@ class QuantOutput(tk.Frame):
                         temp_array.append(j[1])                     # creating array of all data for single mass
             mass_array.append(temp_array)
 
-        print('mass array',mass_array)
+##        print('mass array',mass_array)
         for i in mass_array:
             stdev_values.append(statistics.pstdev(i[1:]))
             averaged_values.append(statistics.mean(i[1:]))
@@ -716,7 +833,16 @@ class QuantOutput(tk.Frame):
         calculated_group_data = [averaged_values,stdev_values]      # create another array with avg & std dev vals for all masses
         return calculated_group_data
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('QuantOutput \t analyze_data \t\t\t', total_time)
+        with open("timing_0_analyze_data_blah", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+
     def output_quantification_file(self):
+        # timing
+            start_time = timeit.default_timer()
 
             date = datetime.today().strftime('%Y%m%d_%H%M%S')
             filenames = []
@@ -735,17 +861,27 @@ class QuantOutput(tk.Frame):
                             out_file.write(temp)
                         out_file.write(" \n")
 
+        # timing
+            total_time = timeit.default_timer() - start_time
+            print('QuantOutput \t output_quantification_file \t', total_time)
+            with open("timing_0_output_quantification_file_blah.csv", "a") as out_file:
+                out_file.write(str(total_time))
+                out_file.write("\n")
+
+
 """
 QUALITY CONTROL GRAPHS
 This class contains the actual QC graphs so its only function is makegraph().
 """
+##Warning (from warnings module):
+##  File "C:\Users\megan\AppData\Local\Programs\Python\Python39\lib\site-packages\bokeh\util\deprecation.py", line 75
+##    warn(message)
+##BokehDeprecationWarning: width and height was deprecated in Bokeh 2.4.0 and will be removed, use width or height instead.
 class QCGraphs(tk.Frame):
     total_qc_graph_array = [] #([[graph_found_masses, masses ,mass_tolerance],...])
     calc_avg_stdev = []
 
     def __init__(self, parent, controller):                             # creating buttons for graphs page: show graphs, search params, new analysis
-
-
         tk.Frame.__init__(self, parent)
 
         label = tk.Label(self, text="Results with quality control graphs", font=LARGE_FONT)
@@ -763,7 +899,11 @@ class QCGraphs(tk.Frame):
                             command=lambda: controller.new_analysis())
         button3.grid(column=2, row=1, sticky='w')
 
+
+    # MAKEGRAPH
     def makegraph(self):
+        # timing
+        start_time = timeit.default_timer()
 
         max_graphs = len(QCGraphs.total_qc_graph_array[0][1])                   # user defined search masses
         qc_plots, group_plots, str_mass_names = [],[],[]
@@ -786,7 +926,7 @@ class QCGraphs(tk.Frame):
         TOOLTIPSQC = [("index", "$index"),("(x,y)", "($x, $y)"),("desc", "@desc"),]
 
         averaged_plot = figure(title="Averaged MS1 Data per Condition", x_axis_label="Mass", y_axis_label="Abundance (%)", tools="pan,box_zoom,wheel_zoom,reset,undo,save", active_drag="box_zoom",
-                               active_scroll="wheel_zoom", x_range=((min(QCGraphs.masses)-100), (max(QCGraphs.masses)+100)),tooltips=TOOLTIPS, plot_width=1080, plot_height=740)
+                               active_scroll="wheel_zoom", x_range=((min(QCGraphs.masses)-100), (max(QCGraphs.masses)+100)),tooltips=TOOLTIPS, width=1080, height=740)
 
         #need to convert searched masses to string values for legend
         for i in QCGraphs.masses:
@@ -834,7 +974,7 @@ class QCGraphs(tk.Frame):
             color_palette = Category20c[20]
 
             p = figure(title="QC Graph for "+str(SearchParams.abrv_filenames[idx]),x_axis_label="Ret. time(s)", tools="pan,box_zoom,wheel_zoom,reset,undo,save",
-                       active_scroll="wheel_zoom",y_axis_label="Intensity", tooltips=TOOLTIPSQC, active_drag="box_zoom", plot_width=1080, plot_height=740)
+                       active_scroll="wheel_zoom",y_axis_label="Intensity", tooltips=TOOLTIPSQC, active_drag="box_zoom", width=1080, height=740)
             offset = .25
             v=[]
             for i in QCGraphs.masses:                           # for each mass... is this ret time?
@@ -876,20 +1016,27 @@ class QCGraphs(tk.Frame):
 
         date = datetime.today().strftime('%Y%m%d_%H%M%S')
         filename = "MS1_quant_graphs"+"_"+date+".html"      # names qcgraph file by date
-        output_file(filename)                               # from bokeh, outputs file containing quant graphs 
+        output_file(filename)                               # from bokeh, outputs file containing quant graphs \
 
         # make a grid
-        grid = gridplot([[averaged_plot,None],qc_plots], merge_tools = False, toolbar_location="left", plot_width=800, plot_height=500)
+        grid = gridplot([[averaged_plot,None],qc_plots], merge_tools = False, toolbar_location="left", width=800, height=500)
         show(grid)
 
         # clear out graphing data
         QCGraphs.total_qc_graph_array ,QCGraphs.calc_avg_stdev,QuantOutput.averaged_data, App.processed_filearray = [],[],[],[]
         SearchParams.dynamic_counter = 1                                # need to reset counter if another search is done
 
+        # timing
+        total_time = timeit.default_timer() - start_time
+        print('QCGraphs \t makegraph \t\t\t', total_time)
+        with open("timing_0_makegraph_blah.csv", "a") as out_file:
+            out_file.write(str(total_time))
+            out_file.write("\n")
+        
         return
 
-
-
+print('Class\t\t Function \t\t\t Runtime (s)')
+print('-------\t\t ----------\t\t\t -----------')
 
 app = App()
 app.mainloop()
