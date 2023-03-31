@@ -121,6 +121,8 @@ from tkinter import filedialog
 
 LARGE_FONT= ("Verdana", 12)
 
+
+
 """
 APP - uses tkinter to build application
 init() - builds app window (Frame) and pages (frame)
@@ -148,7 +150,7 @@ class App(tk.Tk):
 
         # creates the frames (pages in the App)
         self.frames = {}
-        for F in (StartPage, FileSelection, SearchParams, QuantOutput, QCGraphs):
+        for F in (StartPage, FileSelection, SearchParams, QuantOutput, QCGraphs, TestApp):
             frame = F(container, self)                          # creates a frame for each page
             self.frames[F] = frame                              # adds to App's array self.frames
             frame.grid(row=0, column=0, sticky="news")
@@ -174,7 +176,8 @@ class App(tk.Tk):
     # or we somehow just make up some data and use that to test stuff, w/o a file
     def test_app():
         file_path = filedialog.askopenfilename(title="Please select an MS1 MSALIGN file", filetypes=[('All files','*.*')])
-        return
+        returnF
+
 
 
 """
@@ -217,9 +220,92 @@ class StartPage(tk.Frame):
         # bypasses all user input including parameter entries and button clicks
         # while running all functions normally and timing them...
         if App.Test==True:
-            button5 = ttk.Button(self, text="Test n Files",
-                                command=lambda: test_app())
+            button5 = ttk.Button(self, text="Test n Files (not yet sorry)",
+                                command=lambda: controller.show_frame(TestApp))
             button5.grid(column=4, row=1, sticky='w')
+
+
+
+"""
+TESTING
+Clicking "Test n Files" on the 'Start Page' leads to the
+'Testing' page, which has one entry which takes an integer value, the 
+number of files wish to be run. To add later?: number of repeats, 
+complexity of files (small, medium, large), anything else that might help.
+After this user entry, the program should run through the end, bypassing 
+button clicks and timing all functions. Once this is complete, we can clean 
+up the mess I made everywhere else...
+
+"""
+class TestApp(tk.Frame):
+    def __init__(self, parent, controller):
+        # Testing page creation & initialization
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Testing", font=LARGE_FONT)
+        label.grid(column=0, row=0, sticky='w')
+        self.entry_frame = tk.Frame(self)
+        self.entry_frame.grid(row=3, column = 0)
+
+        # file size: user can select a file size (small, med, large) from menu
+        # option list
+        option_list = ['Small','Medium', 'Large']        # better to list actual sizes once we have the files
+        self.file_size = StringVar(self)
+        self.file_size.set('Medium')                     # default file size is medium
+        self.popupMenu = OptionMenu(self, self.file_size, *option_list)
+        # menu label
+        label2 = tk.Label(self, text="Size of files")
+        label2.grid(row=5, column=0, sticky='w')
+        self.popupMenu.grid(row=5, column=1)            # does not look like it's in column 1, very annoying
+        self.file_size.trace('w',self.get_parameters)
+
+        # gets parameters from entries
+        self.controller = controller
+        self.get_parameters(self)
+
+        # calls process_msalign_files() with given parameters
+        processbutton = tk.Button(self, text='Process File(s)', name='pbutton',  fg="green", command=(lambda : self.run_test()))
+        processbutton.grid(column=0, row=1, sticky='w')
+        self.controller = controller # necessary?
+
+
+    # GET_PARAMETERS(): Creates entries for user input and gets parameters from them.
+    # The parameters to be gotten here are: number of files to be tested and size of file.
+    # There are three sizes to choose from: small (), medium (), and large ().
+    def get_parameters(self,*args):
+        TestApp.entries = []
+        
+        for child in self.entry_frame.winfo_children():
+            child.destroy()
+
+        self.entry_frame = tk.Frame(self)
+        self.entry_frame.grid(row=3, column = 0, sticky='w')
+
+        # Testing parameters with integer values:
+            # number of files
+            # anything else?
+        test_fields = ['Number of files']
+        i=2
+        for field in test_fields:
+            lab = tk.Label(self.entry_frame, width=20, text=field, anchor='w')
+            ent = tk.Entry(self.entry_frame, width=8)
+            lab.grid(row=i, column=0)
+            ent.grid(row=i, column=1, sticky='w')
+            TestApp.entries.append((field, ent))
+            i+=1
+        TestApp.entries[0][1].insert(0,1)       # Number of files to test (default 1)
+
+        # Testing parameters with non-integer values:
+            # size of file (idk how to include "default" files for testing but we may have 
+                # to figure that out anyway, so we might as well have different sizes)
+            # anything else?   
+
+
+    def run_test():
+        # i wanted to just call each of the process functions here, but they take you to new pages.
+        # so i'm confused about how to do testing... lots of things to google here.
+        # may just need to rewrite some functions to have default args and call those
+        return 
+
 
 
 """
@@ -299,7 +385,7 @@ class FileSelection(tk.Frame):
 
                 # changes to FileSelection page
                 FileSelection.filelabel_identities.append(filelabel)
-                ileSelection.group_identities.append(group_label_entry)
+                FileSelection.group_identities.append(group_label_entry)
                 FileSelection.button_identities.append(removebutton)
                 FileSelection.gridrow += 1
                 App.total_files+=1
@@ -378,19 +464,12 @@ class FileSelection(tk.Frame):
                 App.expgroup.append(group_name)     # ^ these fill prev empty array expgroup
                 # App.expgroup.append(group.get())
 
-            # abbreviate msalign MS1 filenames for graphing display
+            # extracts filenames to abrv_filenames for graphing display
             # msalign_filearray consists of, for each file, the Label and name, so skip by 2
+            # TO DO: remove this and just use msalign_filearray
             for i in range(1,len(App.msalign_filearray),2):     # len(...) = # of input files
-                for character in App.msalign_filearray[i]:      # not sure why we're doing this again?
-                    if character != '/':                        # i think we already abbreviated during upload
-                        temp_name.append(character)
-                    else:
-                        break
-                temp_name_to_str = ''.join([str(elem) for elem in temp_name])
-                SearchParams.abrv_filenames.append(temp_name_to_str)
-            # maybe try using msalign_filearray[2i] wherever we're using SearchParams.abrv_filenames[i]?
-            # they seem to be the same thing, since the process above was done to that object too
-
+                SearchParams.abrv_filenames.append(App.msalign_filearray[i])
+                
             # timing end
             total_time = timeit.default_timer() - start_time
             print('FileSelection \t populate_entries \t\t', total_time)
@@ -459,12 +538,8 @@ class SearchParams(tk.Frame):
         SearchParams.entries = []               # already initialized?
         SearchParams.dynamic_entries = []       # already initialized?
 
-        # CHANGE_RANGE(): allows a user to search normally or by mass range in Dynamic Mode. in the default 
-        # mode, users can only enter a list of masses, but checking 'Search by mass range' also allows the 
-        # user to specify the min, max, and interval of the masses they want to analyze. 
+        # CHANGE_RANGE(): allows the user to "Search by mass range" (only in Dyamic mode)
         def change_range(self,*args):
-            print('mass_range get',self.mass_range.get())   # for testing?
-            # In Dynamic Mode, user has the option to "Search by mass range"
             if self.mass_range.get() == 1:      # if "Search by mass range" selected, allow additional input
                 self.mass_field.config(text = 'Mass range (min, max, interval): ')
                 self.mass_max.grid(row=3, column=2,sticky='news')
@@ -512,9 +587,9 @@ class SearchParams(tk.Frame):
 
         # In Dynamic Mode, create buttons and entry boxes
         if self.search_optn.get() == "Dynamic":         # in dynamic mode
-            for child in self.entry_frame.winfo_children():         # again possibly to destroy static mode stuff while dynamic?
+            for child in self.entry_frame.winfo_children():         # destroys static mode stuff while dynamic
                 child.destroy()
-            self.mass_range.set(0)                      # automatically sets default "search by mass range" off?
+            self.mass_range.set(0)                      # sets default "search by mass range" off
 
             self.entry_frame = tk.Frame(self)           # populates frame with dynamic mode input
             self.entry_frame.grid(row=3, column = 0, sticky='w')
@@ -538,7 +613,7 @@ class SearchParams(tk.Frame):
 
             i=4 #start grid at row 3
 
-            # masses will be at row 3 (label at column 0, entry at column 1)             # unsure of what's happening here
+            # masses will be at row 3 (label at column 0, entry at column 1)
             for field in s_fields:
                 lab = tk.Label(self.entry_frame, width=20, text=field, anchor='w')
                 ent = tk.Entry(self.entry_frame, width=8)
@@ -811,8 +886,8 @@ class SearchParams(tk.Frame):
 
         # Gather entries from parameters in Dynamic Mode
         if self.search_optn.get() == "Dynamic":
-            scan_min = 0                                                # default to ret time min?
-            scan_max = 30000                                            # default to ret time max?
+            scan_min = 0                                                # default to ret time min
+            scan_max = 30000                                            # default to ret time max
             retention_min = float((SearchParams.dynamic_entries[SearchParams.dynamic_counter][1]).get())
             retention_max = float((SearchParams.dynamic_entries[SearchParams.dynamic_counter+1][1]).get())
             SearchParams.dynamic_counter+=3
@@ -880,7 +955,7 @@ class SearchParams(tk.Frame):
         # and append this to total_qc_graph_array.
         QCGraphs.graph_found_masses, QCGraphs.masses, QCGraphs.mass_tolerance = graph_found_masses, masses, mass_tolerance
         qc_graph_result = [graph_found_masses, masses, mass_tolerance]              # qc_graph_result = [graph_found_masses, masses, mass tolerance]
-        QCGraphs.total_qc_graph_array.append(qc_graph_result)                       # QCGraphs.total_qc_graph_array[0][2] = qc_graph_result?
+        QCGraphs.total_qc_graph_array.append(qc_graph_result)                       # QCGraphs.total_qc_graph_array[0][2] = qc_graph_result
 
         # timing end
         total_time = timeit.default_timer() - start_time
@@ -964,10 +1039,14 @@ class QuantOutput(tk.Frame):
         self.controller = controller
 
 
+
+
+    ''' NOTE TO SELF: CORRECTING ERRORS IN HERE IS A !!!PRIORITY!!! '''
+
     # ANALYZE_DATA(): given data in processed_filearray and expgroup, groups data
     # then calculates avg and std deviation. this data is appended to the arrays
     # grouped_data and calc_avg_stdev, the latter of which is passed to QC Graphs
-    # (to form error bars?).
+    # (to form error bars).
     def analyze_data(self):
         # timing start
         start_time = timeit.default_timer()
@@ -977,6 +1056,7 @@ class QuantOutput(tk.Frame):
         grouped_data = []
         calc_avg_stdev = []
         temp_array = []
+
         # arrays that contain the data to be used in calculations
         processed_filearray_temp = App.processed_filearray
         expgroup_temp = App.expgroup
