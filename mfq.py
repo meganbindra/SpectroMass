@@ -734,7 +734,7 @@ class SearchParams(tk.Frame):
             # Warning: Overlap between 'Mass Interval' and 'Mass Tolerance'
             # The mass interval must be more than twice as large as the mass tolerance, otherwise one datapoint may be counted towards two neighboring masses of interest. Once we have the above issue fixed we can put this in the same for loop as checking the entries above and won't need  so many if statements.
             if self.mass_range.get() == 1:
-                if (int(SearchParams.entries[1][1].get()) >= math.floor(int(SearchParams.entries[0][3].get())/2)):
+                if (int(SearchParams.entries[1][1].get()) >= math.ceil(int(SearchParams.entries[0][3].get())/2)):
                     mb.showerror("Warning", "Overlap between mass interval and mass tolerance.\nInterval must be more than twice as large as tolerance.")
                     error = True
 
