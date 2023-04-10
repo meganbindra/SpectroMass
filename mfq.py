@@ -1,35 +1,18 @@
 """
-TITLE: Mass_Finder_and_Quantifier.py
+TITLE: Mass_Finder_and_Quantifier.py or Spectromass.py?
 
 INPUT: msalign file(s) (.csv)
 *must be in same folder as application
 
 OUTPUT: interactive quant graphs (.html), quant data (.csv)
 
-DESCRIPTION: This application takes the msalign file(s) resulting from running
-FlashDECONV on the mass spectrum of some sample(s), and uses this data along with
-user input retrieved in app to plot the mass vs. abundance of all samples on the same
-interactive mass vs. abundance graph. User input is straightforward & minimal:
+DESCRIPTION: This application takes the msalign file(s) resulting from running FlashDECONV on the mass spectrum of some sample(s), and uses this data along with user input retrieved in app to plot the mass vs. abundance of all samples on the same interactive mass vs. abundance graph. User input is straightforward & minimal:
    - Users will be prompted to upload msalign files (at least one is required).
-   - Each file can be re-labeled (e.g. "control group", "stage 1") in app immediately
-   after uploading. These labels help distinguish between samples on the graph legend.
-   A default label ("exp. group") is provided.
-   - Users are prompted to specify the mass ranges, retention times, etc that they are
-   interested in seeing plotted. Default values are provided.
-The interactive output graph (with a quality control graph for each file uploaded)
-is generated in browser, where users can further inspect & compare the samples'
-data. A csv file containing the same information as the main graph is saved to the
-same folder as the application and input files.
+   - Each file can be re-labeled (e.g. "control group", "stage 1") in app immediately after uploading. These labels help distinguish between samples on the graph legend. A default label ("exp. group") is provided.
+   - Users are prompted to specify the mass ranges, retention times, etc that they are interested in seeing plotted. Default values are provided.
+The interactive output graph (with a quality control graph for each file uploaded) is generated in browser, where users can further inspect & compare the samples' data. A csv file containing the same information as the main graph is saved to the same folder as the application and input files.
 
-NOTE: While the program runs, many additional features (such as the "New Analysis"
-and "Test" buttons) are broken and the code (& console) are messy. Currently we've been
-working on switching to pandas, so several functions have "two versions" of code with
-one commented out. This switch has been difficult because of these functions kind of 
-depend on each other. So all of the commented code (attempts to use pandas) result in
-errors, but I'm not sure if that's because I'm doing things wrong or just because without
-everything in the same format throughout, I get a bunch of inconsistencies. I'm running
-into a similar problem with what I was hoping would be a solution, the "Test" function -
-I don't know how to get all these functions from different classes to talk to each other.
+NOTE: While the program runs, many additional features (such as the "New Analysis" and "Test" buttons) are broken and the code (& console) are messy. Currently we've been working on switching to pandas, so several functions have "two versions" of code with one commented out. This switch has been difficult because of these functions kind of depend on each other. So all of the commented code (attempts to use pandas) result in errors, but I'm not sure if that's because I'm doing things wrong or just because without everything in the same format throughout, I get a bunch of inconsistencies. I'm running into a similar problem with what I was hoping would be a solution, the "Test" function - I don't know how to get all these functions from different classes to talk to each other.
 """
 
 import timeit
@@ -118,34 +101,39 @@ from bokeh.transform import dodge
 from tkinter import filedialog
     # filedialog: provides a set of dialogs to use when working with file, such as open, save, etc.
         # used to upload & open ms1ft .csv files
+from tktooltip import ToolTip
+from idlelib.tooltip import Hovertip
+import math
 
 LARGE_FONT= ("Verdana", 12)
 
 
 
 """
-APP - uses tkinter to build application
-init() - builds app window (Frame) and pages (frame)
-show_frame(page_name) - displays given page
-new_analysis() - refreshes app for new analysis (BROKEN)
+APP
+
+This builds the backbone of the app using tkinter. Each page of the app is a frame in App.frames. Throughout the code, pages are displayed using App.show_frame('pagename'). The first page is set here as well, and is temporarily set to the 'File Selection' page (an explanation for this is provided in the comments for the 'Start Page').
+
+The functions new_analysis() and test_app() are also defined here, but both are broken, so their buttons have been disabled. 
+
 """
 class App(tk.Tk):   
-    msalign_filearray = []      # [filelabel (file's unique id), ext_filename (file name), ...] (2 vals for each msalign file)
+    msalign_filearray = []
     processed_filearray = []
     expgroup = []
     total_files = 0
-    Test = True                # shows test button, which performs a test run of n identical files (for testing only, WIP)
+    Test = True                 # shows test button, which performs a test run of n identical files (WIP)
 
     def __init__(self, *args, **kwargs):
-        # must call __init__ to use tkinter objects (self throughout)
-        tk.Tk.__init__(self, *args, **kwargs)                   # not sure if all args needed since only one App
-        tk.Tk.wm_title(self,"Mass Finder and Quantifier")       # App title is "Mass Finder and Quantifier"
+        # initializing App
+        tk.Tk.__init__(self, *args, **kwargs)
+        tk.Tk.wm_title(self,"Mass Finder and Quantifier")       # TO DO: "Mass Finder and Quantifier" or "Spectromass"?
 
         # create the Frame the App is contained in (container for App)
         container = tk.Frame(self)
         container.grid(column=0, row=0, sticky='news')
-        container.grid_rowconfigure(0, weight=1)                # container index 0 has width x1 (regular)
-        container.grid_columnconfigure(0, weight=1)             # container index 0 has height x1 (regular)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
         self.geometry("1280x740")                               # size of window (width x height) in pixels
 
         # creates the frames (pages in the App)
@@ -155,25 +143,21 @@ class App(tk.Tk):
             self.frames[F] = frame                              # adds to App's array self.frames
             frame.grid(row=0, column=0, sticky="news")
 
-        # app opens with Start Page
-        self.show_frame(StartPage)
+        # app opens with File Selection while we work on New Analysis, Test, and linking pages
+        self.show_frame(FileSelection)                              # self.show_frame(StartPage)
 
     # show_frame(): shows a page of the app (usually called when a button is pressed, except above)
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
 
-    # new_analysis(): BROKEN probably because code execution stops with app.mainloop()
-    # so python's not reading anything after the "New Analysis" button is pressed
+    # new_analysis(): BROKEN probably because code execution stops with app.mainloop(), so python isn't reading anything after the "New Analysis" button is pressed
     def new_analysis(self):
         app = App()
         app.mainloop()
 
 
-    # test_app(): WIP
-    # takes a positive integer n as input and uploads the default sample file n times
-    # i think this will require users to download the sample file with the program 
-    # or we somehow just make up some data and use that to test stuff, w/o a file
+    # test_app(): WIP, takes a positive integer n as input and uploads the default sample file n times
     def test_app():
         file_path = filedialog.askopenfilename(title="Please select an MS1 MSALIGN file", filetypes=[('All files','*.*')])
         returnF
@@ -181,8 +165,14 @@ class App(tk.Tk):
 
 
 """
-START PAGE - builds 'Start Page' with all its buttons.
-This is immediately displayed upon running the app.
+START PAGE (CURRENTLY DISABLED)
+
+The 'Start Page' is the first page of the app. 
+
+However, since the pages don't link back to one another the only real option here is for the user to click 'MS1 File Selection'. File selection is the first step of the program, so we would want that to be the first page users go to. I assume the Start Page is intended for if we were able to link up all the pages, so the user wouldn't have to go through this process in a linear fashion (or even if in the future we allow people to save data from previous runs in-app). 
+
+For now, since every other button leads to an error or failure to complete, I think it makes the most sense to have 'MS1 File Selection' be either the only button on this page or for the File Selection page to be the first page of the app. I've set the 'File Selection' page as the first page of the app for now.
+
 """
 class StartPage(tk.Frame):
 
@@ -193,7 +183,6 @@ class StartPage(tk.Frame):
         label.grid(column=0, row=0, sticky='w')
 
         # Each button has a lambda calling show_frame to display a certain page
-        # all buttons are in the same row (0) but different columns (0,1,2,3)
 
         # File Selection Button
         button1 = ttk.Button(self, text="MS1 File Selection",
@@ -215,26 +204,19 @@ class StartPage(tk.Frame):
                             command=lambda: controller.show_frame(QCGraphs))
         button4.grid(column=3, row=1, sticky='w')
 
-        # Test Button - still building but also don't know how to call this???
-        # this fn feeds constant input file to program n times and
-        # bypasses all user input including parameter entries and button clicks
-        # while running all functions normally and timing them...
+        # Test Button (WIP)
+        # This function should run the program normally (rumming and timing all applicable functions) while bypassing all user input (including parameter entries and button clicks). It is intended to make testing easier.
         if App.Test==True:
-            button5 = ttk.Button(self, text="Test n Files (not yet sorry)",
-                                command=lambda: controller.show_frame(TestApp))
+            button5 = ttk.Button(self, text="Test n Files",
+                                command=lambda: controller.show_frame(TestApp), state=DISABLED)
             button5.grid(column=4, row=1, sticky='w')
 
 
 
 """
-TESTING
-Clicking "Test n Files" on the 'Start Page' leads to the
-'Testing' page, which has one entry which takes an integer value, the 
-number of files wish to be run. To add later?: number of repeats, 
-complexity of files (small, medium, large), anything else that might help.
-After this user entry, the program should run through the end, bypassing 
-button clicks and timing all functions. Once this is complete, we can clean 
-up the mess I made everywhere else...
+TESTING (CURRENTLY DISABLED, WIP)
+
+Clicking "Test n Files" on the 'Start Page' leads to the 'Testing' page, which has one entry which takes an integer value, the number of files wish to be run. To add later?: number of repeats, complexity of files (small, medium, large), anything else that might help. After this user entry, the program should run through the end, bypassing button clicks and timing all functions. Once this is complete, we can clean up the mess I made everywhere else...
 
 """
 class TestApp(tk.Frame):
@@ -270,7 +252,7 @@ class TestApp(tk.Frame):
 
     # GET_PARAMETERS(): Creates entries for user input and gets parameters from them.
     # The parameters to be gotten here are: number of files to be tested and size of file.
-    # There are three sizes to choose from: small (), medium (), and large ().
+    # Maybe three sizes to choose from: small (), medium (), and large ()?
     def get_parameters(self,*args):
         TestApp.entries = []
         
@@ -300,6 +282,7 @@ class TestApp(tk.Frame):
             # anything else?   
 
 
+    # TO DO: figure this out
     def run_test():
         # i wanted to just call each of the process functions here, but they take you to new pages.
         # so i'm confused about how to do testing... lots of things to google here.
@@ -307,14 +290,12 @@ class TestApp(tk.Frame):
         return 
 
 
-
 """
 FILE SELECTION
-Clicking "MS1 File Selection" on the 'Start Page' leads to the
-'MS1 File Selection' page, which has two buttons, one for "New Analysis"
-and one for "Add File". Once one file has been uploaded, a button to
-"Process Files" appears, created within msalignfile().
-- temp: can add max of 20 files (to prevent upload loop?)
+
+Clicking "MS1 File Selection" on the 'Start Page' leads to the 'MS1 File Selection' page, which has two buttons, one for "New Analysis" and one for "Add File". Once one file has been uploaded, a button to "Process Files" appears, created within msalignfile().
+    - temporary to prevent upload loops: can add max of 20 files (TO DO: replace with error message?)
+
 """
 class FileSelection(tk.Frame):
     gridrow = 4
@@ -329,20 +310,21 @@ class FileSelection(tk.Frame):
         label = tk.Label(self, text="MS1 File Selection", font=LARGE_FONT)
         label.grid(column=0, row=0, sticky='w')
 
-        # New Analysis Button
+        # New Analysis Button (issues w/file selection in new analysis so currently disabled)
         button2 = tk.Button(self, text="New Analysis",
-                            command=lambda: controller.new_analysis())
+                            command=lambda: controller.new_analysis(), state=DISABLED)
         button2.grid(column=1, row=1, sticky='w')
 
         # Add File Button
         addbutton = tk.Button(self, text='Add File',  fg="green", command=(lambda : self.msalignfile()))
         addbutton.grid(column=0, row=2,sticky='w')
+        addbutton_tip = Hovertip(addbutton, 'Upload a file\n(.msalign)', hover_delay=100)
 
         self.controller = controller
 
 
-    # MSALIGNFILE(): uploads a new msalign file and builds/updates File Selection Page
-    # throughout upload process, called each time "Add File" button is pressed.
+    # MSALIGNFILE(): uploads a new msalign file and builds/updates File Selection Page throughout upload process.
+    # This function is called each time the "Add File" button is pressed.
     def msalignfile(self):
         if App.total_files > 20:                                                          # 20 file max (temporary)
             mb.showerror("Warning","Cannot load more files. Maximum files (20) reached.") # i assume to avoid infinite loop
@@ -363,25 +345,24 @@ class FileSelection(tk.Frame):
             temp_name.reverse()                 # reverse to get chars in original order
             ext_filename = ''.join([str(char) for char in temp_name])   # store as string
 
-            # Once a file has been successfully uploaded, display in app while
-                # allowing user to relabel each file by group (e.g. 'exp group', 'ctrl group')
+            # Once a file has been successfully uploaded, display in app while:
+                # allowing user to relabel each file, usually by group (e.g. 'exp group', 'ctrl group')
                 # allowing user remove individual uploaded files with a button
             if ext_filename != "":
                 # displays uploaded file on grid as an (editable - why?) Label object
                 filelabel = Label(self, text = 'File: '+ ext_filename)  # textvariable? to pass to Entry?
                 filelabel.grid(row=FileSelection.gridrow, column=FileSelection.gridcolumn, sticky='w')
 
-                # creates editable group_label_entry, so that the user can specify 
-                # what each msalign file represents (control, experiment 1, etc) in app
+                # creates editable group_label_entry, so that the user can specify what each msalign file represents (control, experiment 1, etc) in app
                 # these will be the labels shown on the output graphs
                 group_label_entry = tk.Entry(self, width=13)
                 group_label_entry.grid(row=FileSelection.gridrow, column=int(FileSelection.gridcolumn)+1, sticky='w')
                 group_label_entry.insert(0,'<exp. group>')
 
-                # creates a removebutton alongside & specific to each uploaded file
-                # using a lambda that calls the function "Xclick", defined below this fn
+                # creates a removebutton alongside & specific to each uploaded file using a lambda that calls the function "Xclick", defined below this fn
                 removebutton = tk.Button(self, text='X', fg="red", command=(lambda : Xclick(filelabel,group_label_entry,removebutton)))
                 removebutton.grid(row=FileSelection.gridrow, column=int(FileSelection.gridcolumn)+2)
+                removebutton_tip = Hovertip(removebutton, 'Remove ' + ext_filename, hover_delay=100)
 
                 # changes to FileSelection page
                 FileSelection.filelabel_identities.append(filelabel)
@@ -395,29 +376,30 @@ class FileSelection(tk.Frame):
                 App.msalign_filearray.append(filelabel)
                 App.msalign_filearray.append(ext_filename)
 
-            # timing has to start after user interaction so I guess I'll start it here...
+            # timing start
             start_time = timeit.default_timer()
                 
             # only show "Process Files" button once there are files to process
             # pressing the "Process Files" button calls the lambda populate_entries()
             if len(App.msalign_filearray) == 2:         # if something uploaded, msalign_file array should have 2 vals (file label & name)
-                processbutton = tk.Button(self, text='Process File(s)', name='processbutton',  fg="green", command=(lambda : populate_entries()))
-                processbutton.grid(column=0, row=20, sticky='w')
+                # spacing around process files button
+                space = tk.Label(self, text="\n")
+                space.grid(column=0, row=20, sticky='w')
+                
+                # process files button
+                processbutton = tk.Button(self, text='Process File(s)', name='processbutton', bg="green", fg="white", command=(lambda : populate_entries()))
+                processbutton.grid(column=0, row=21, sticky='w')
+                process_tip = Hovertip(processbutton, 'Warning! Once processed, files cannot be changed.', hover_delay=100)
 
         # timing end
         total_time = timeit.default_timer() - start_time
         print('Fileselection \t msalignfile \t\t\t', total_time)
-        with open("timing_0_msalignfile_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_msalignfile.csv", "a") as out_file:         # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
 
-        # XCLICK(): for a selected file, destroys its boxes on the File Selection Page
-        # (filelabel, entry box, and removebutton) and the corresponding values in
-        # the identity arrays for those 3 values, then destroys its 2 values in
-        # msalign_filearray and updates the app's total number of files, removing
-        # the "Process Files" button if this is 0. Result is as though the
-        # selected file was never uploaded.
+        # XCLICK(): destroys all info for a selected file in FileSelection page (filelabel, entry box, removebutton) and the corresponding values in the identity arrays for those 3 values. Then destroys its 2 values in msalign_filearray and updates the app's total number of files, removing the "Process Files" button if this is 0. The result is as though the selected file was never uploaded.
         def Xclick(filelabel, group_label_entry, removebutton):
             # timing start
             start_time = timeit.default_timer()
@@ -446,36 +428,38 @@ class FileSelection(tk.Frame):
             # timing end
             total_time = timeit.default_timer() - start_time
             print('FileSelection \t Xclick \t\t\t', total_time)
-            with open("timing_0_Xclick_blah.csv", "a") as out_file:
-                out_file.write(str(total_time))
-                out_file.write("\n")
+            # with open("timing_0_Xclick.csv", "a") as out_file:          # timing output file for testing
+                # out_file.write(str(total_time))
+                # out_file.write("\n")
 
 
-        # POPULATE_ENTRIES(): fills msalign_filearray with data from group_identities array,
-        # called after all input files are uploaded and 'Process Files' button is pressed
+        # POPULATE_ENTRIES(): fills msalign_filearray with data from group_identities array.
+        # Called after all input files are uploaded and 'Process Files' button is pressed.
+        #
+        # It would be nice to make an option to undo this process (similar to how xClick undoes the upload process) so that users can return to the File Selection page at any point to make changes (like they can with Search Parameters).
         def populate_entries():
             # timing start
             start_time = timeit.default_timer()
 
             # Fill expgroup (array) with group names (e.g. 'exp. group')
             # parse through group_identities, one per file but many can hold same string val
-            for group in self.group_identities:     # TO DO could be one line?
+            for group in self.group_identities:     # might make this one line
                 group_name = group.get()            # group_label_entry in msalignfile()
                 App.expgroup.append(group_name)     # ^ these fill prev empty array expgroup
                 # App.expgroup.append(group.get())
 
             # extracts filenames to abrv_filenames for graphing display
             # msalign_filearray consists of, for each file, the Label and name, so skip by 2
-            # TO DO: remove this and just use msalign_filearray
+            # TO DO: remove this and just use msalign_filearray?
             for i in range(1,len(App.msalign_filearray),2):     # len(...) = # of input files
                 SearchParams.abrv_filenames.append(App.msalign_filearray[i])
                 
             # timing end
             total_time = timeit.default_timer() - start_time
             print('FileSelection \t populate_entries \t\t', total_time)
-            with open("timing_populate_entries.csv", "a") as out_file:
-                out_file.write(str(total_time))
-                out_file.write("\n")
+            # with open("timing_populate_entries.csv", "a") as out_file:      # timing output file for testing
+            #     out_file.write(str(total_time))
+            #     out_file.write("\n")
 
             # When done processing input files, show 'Search Parameters' page
             self.controller.show_frame(SearchParams)
@@ -483,16 +467,14 @@ class FileSelection(tk.Frame):
 
 """
 SEARCH PARAMS
-Clicking "Search Parameters" on the 'Start Page' leads to the
-'Search Parameters' page, which defaults to static mode, where the user
-can specify the values of 6 parameters. This page has a button which initially
-displays "Static", but if you click on it you can change it to "Dynamic",
-which allows the user to search by mass range. 
+
+Clicking "Search Parameters" on the 'Start Page' leads to the 'Search Parameters' page, which defaults to Static mode, where the user can specify the values of 6 parameters. Switching to Dynamic mode allows the user to specify different start and end retention times for each file. Also, in Dynamic mode, the user has the option to 'search by mass range' rather than specifying masses of interest by listing them.
+
 """
 class SearchParams(tk.Frame):
-    abrv_filenames = []             # abbreviate filenames for display purposes
-    entries = []                    # 
-    dynamic_entries = []            # ('file name1', ('start ret time1', entry1),('end ret time1, entry1'),'file name2',...)
+    abrv_filenames = []             # abbreviated filenames for display purposes
+    entries = []
+    dynamic_entries = []
     dynamic_counter = 1             # this will be used for file-specific search conditions (e.g., retention times)
 
     def __init__(self, parent, controller):
@@ -512,42 +494,83 @@ class SearchParams(tk.Frame):
         self.search_optn.set('Static')              # default is Static
         self.popupMenu = OptionMenu(self, self.search_optn, *option_list)
 
-        # Menu label
-        label2 = tk.Label(self, text="Search Mode:")
-        label2.grid(row = 0, column = 1)
-        self.popupMenu.grid(row = 0, column =2)
+        # Menu label for Search Mode
+        search_mode = tk.Label(self, text="Search Mode:")
+        search_mode.grid(row = 0, column = 1)
+        search_mode_tip = Hovertip(search_mode, 'Static Mode is usually recommended for the first run. \nUse Dynamic Mode to specify retention time per file \nand masses of interest by range.', hover_delay=100)
+        self.popupMenu.grid(row = 0, column = 2)
         self.search_optn.trace('w',self.get_parameters)
 
         # Pre-populate search options w/(default static) parameters
         self.controller = controller
         self.get_parameters(self)
 
+        # empty space before process files button
+        space = tk.Label(self, text="\n")
+        space.grid(column=0, row=7, sticky='w')
+
         # 'Process Files' Button calls process_msalign_files()
-        processbutton = tk.Button(self, text='Process File(s)', name='pbutton',  fg="green", command=(lambda : self.process_msalign_files()))
-        processbutton.grid(column=0, row=2, sticky='w')
+        processbutton = tk.Button(self, text='Process File(s)', name='pbutton', bg="green", fg="white", command=(lambda : self.process_msalign_files()))
+        processbutton.grid(column=0, row=8, sticky='w')
+        process_tip = Hovertip(processbutton, 'Process file(s) according to specified search parameters', hover_delay=500)
 
         # Set up for progress()
         self.e=StringVar()
         self.e.set("Loading")
 
 
-    # GET_PARAMETERS(): displays approriate parameters for user entry (in static vs dynamic mode,
-    # search by mass range vs. simple massses input).
-    ''' timing note: get_parameters and change_range have too much user input for me to time '''
+    # GET_PARAMETERS(): Displays user entry fields for user specified parameters such as scan start and end time, mass tolerance, etc. Contains two modes - Static (the default mode) and Dynamic. 
+    # In Static mode, the user specifies masses of interest by entering a list (separated by spaces or commas and spaces) and a mass tolerance (which specifies what 'distance' away a mass can be to be counted as a mass of interest). The user specifies a single start & end retention time for all files.
+    # In Dynamic mode, the user can set masses of interest by range instead of inputting a list, by specifying the minimum and maximum mass values and the interval between them. The program uses these three parameters to create a list of masses of interest. The user specifies mass tolerance as in Static mode. In this mode, the user can specify different start & end retention times for different files.
     def get_parameters(self,*args):
-        SearchParams.entries = []               # already initialized?
-        SearchParams.dynamic_entries = []       # already initialized?
+        # Reset entries (for starting or switching back to Search Params page)
+        # In Static mode, entries = [('Start Scan', Entry), ('End Scan', Entry), ('Start ret. time', Entry), ('End ret. time', Entry), ('Masses', Entry), ('Mass Tolerance (Da)', Entry)]
+        # In Dynamic mode, entries = [('Masses', Entry, Entry, Entry), ('Mass Tolerance (Da)', Entry)]
+        # In Dynamic mode, dynamic_entries = ['filename.msalign', ('Start ret. time', Entry), ('End ret. time', Entry), ...], where this info is provided per input file
+        SearchParams.entries = []
+        SearchParams.dynamic_entries = []
 
-        # CHANGE_RANGE(): allows the user to "Search by mass range" (only in Dyamic mode)
-        def change_range(self,*args):
-            if self.mass_range.get() == 1:      # if "Search by mass range" selected, allow additional input
-                self.mass_field.config(text = 'Mass range (min, max, interval): ')
-                self.mass_max.grid(row=3, column=2,sticky='news')
-                self.mass_interval.grid(row=3, column=3,sticky='news')
-            if self.mass_range.get() == 0:      # if "Search by mass range" not selected, only take masses
-                self.mass_max.grid_forget()
-                self.mass_interval.grid_forget()
-                self.mass_field.config(text = 'Masses: ')
+        """ ------------------- CHANGEABLE PARAMETERS START HERE ------------------- """
+        """                        (Pesavento Lab use H3, H2A)                       """
+        # The code below determines the default parameters with regards to the masses of interest in both Static and Dynamic mode.
+        # To replace these with your own values, follow the steps below. Add a list containing your masses of interest, then edit the default_masses variable to refer to your new list. 
+
+        # STEP 1/2: List your masses of interest below (give your list a name like H3 then list the masses between brackets and separated by commas, as shown).
+        H3 = [15168,15182,15196,15210,15224,15238,15252,15266,15280,15294,15308,15322,15336,15350,15364,15378,15392,15406,15430,15444,15458,15472,15486,15500]
+        # H2A = [13488,13530,13572,13545,13587,13629,13700,13742,13784,13713,13755,13797]
+        # H4 = [11318,11332,11346,11360,11374,11388,11402,11416,11430,11444,11458,11472,11486,11500,11514,11528,11542,11556]
+        # H4ox = [11334, 11348, 11362,11376,11390,11404,11418,11432,11446,11460,11474,11488,11502,11516,11530,11544,11558]
+
+        # Static mode default values (changeable)
+        default_masses = H3                     # STEP 2/2: Replace H3 in this line with the name of your list.
+        default_tolerance = 2
+        default_scan_start = 100
+        default_scan_end = 11111
+        default_ret_start = 100
+        default_ret_end = 11111
+        """ -------------------- CHANGEABLE PARAMETERS END HERE -------------------- """
+
+        # Dynamic mode default values are calculated based on Static mode default values (NOT recommended to change)
+        default_min = min(default_masses)
+        default_max = max(default_masses)
+        default_interval = (2*default_tolerance)+1
+
+        # CHANGE_RANGE(): manages updates to the app when user switches mass search mode between list and range by updating, creating, and destroying fields, entries, and tips.
+        def change_range(self,*args,):
+            if self.mass_range.get() == 1:              # if "Search by mass range" selected:
+                self.mass_field.config(text = 'Mass Range (min, max, interval) ')   # update field to 'Mass Range (...)'
+                self.mass_max.grid(row=3, column=2,sticky='news')                   # make entry for max
+                self.mass_interval.grid(row=3, column=3,sticky='news')              # make entry for interval
+                self.entries[0][1].delete(0, END)                                   # change default parameter in first fieild
+                self.entries[0][1].insert(0,default_min)                            # to default min
+                tip = Hovertip(self.mass_field_ent, 'Specify minimum mass of interest.\nEx: Entering 1 in (1,9,2) yields\nthe mass range [1,3,5,7,9].', hover_delay=100)
+            if self.mass_range.get() == 0:              # if "Search by mass range" not selected:
+                self.mass_field.config(text = 'Masses ')    # update field to 'Masses'
+                self.mass_max.grid_forget()                 # remove entry for max
+                self.mass_interval.grid_forget()            # remove entry for interval
+                self.entries[0][1].delete(0, END)           # change default parameter in first field
+                self.entries[0][1].insert(0,default_masses) # to default masses
+                tip = Hovertip(self.mass_field_ent, 'List masses of interest. \nSeparate each mass with either \na space or a comma and a space.', hover_delay=100)
 
         # In Static Mode, create buttons and entry boxes
         if self.search_optn.get() == "Static":
@@ -558,9 +581,9 @@ class SearchParams(tk.Frame):
             self.entry_frame = tk.Frame(self)
             self.entry_frame.grid(row=3, column = 0, sticky='w')
 
-            # s_fields are input fields in Static Mode
-            s_fields = ('Start scan', 'End scan', 'Start ret. time', 'End ret. time', 'Masses','Mass Tolerance (Da)')
-            i=3  #start grid at row 3
+            # input fields in Static Mode
+            s_fields = ('Start scan', 'End scan', 'Start ret. time', 'End ret. time', 'Masses', 'Mass Tolerance (Da)')
+            i=3
 
             # for each entry in Static Mode, enter the field name and entry as a pair into SearchParams.entries
             for field in s_fields:
@@ -571,114 +594,168 @@ class SearchParams(tk.Frame):
                 SearchParams.entries.append((field, ent))
                 i+=1
 
-            """ CHANGEABLE PARAMETERS HERE: H3, H2A """
-            # pre-set parameters / can be changed by user
-            # H4 [11318,11332,11346,11360,11374,11388,11402,11416,11430,11444,11458,11472,11486,11500,11514,11528,11542,11556]
-            # H4ox [11334, 11348, 11362,11376,11390,11404,11418,11432,11446,11460,11474,11488,11502,11516,11530,11544,11558]
-            H3 = [15168,15182,15196,15210,15224,15238,15252,15266,15280,15294,15308,15322,15336,15350,15364,15378,15392,15406,15430,15444,15458,15472,15486,15500]
-            H2A = [13488,13530,13572,13545,13587,13629,13700,13742,13784,13713,13755,13797]
+            # a tip pops up when the user hovers over each entry field
+            scan_start_tip = Hovertip(SearchParams.entries[0][1], 'Specify starting time of scan range to be considered', hover_delay=100)
+            scan_end_tip = Hovertip(SearchParams.entries[1][1], 'Specify ending time of scan range to be considered', hover_delay=100)
+            ret_start_tip = Hovertip(SearchParams.entries[2][1], 'Specify smallest retention time to be considered', hover_delay=100)     # TO DO: this probably doesn't make sense, please help!
+            ret_end_tip = Hovertip(SearchParams.entries[3][1], 'Specify longest retention time to be considered', hover_delay=100)        # i feel like you would want retention time to be longer?
+            masses_tip = Hovertip(SearchParams.entries[4][1], 'List masses of interest. \nSeparate each mass with either \na space or a comma and a space.', hover_delay=100)
+            mass_tolerance_tip= Hovertip(SearchParams.entries[5][1], 'Specify mass tolerance. \nEx: A tolerance of 2 will count \nmasses 15180 through 15184 \ntowards the mass 15182.', hover_delay=100)
 
-            SearchParams.entries[0][1].insert(0,1)     # Start scan
-            SearchParams.entries[1][1].insert(0,11111) # End scan
-            SearchParams.entries[2][1].insert(0,1)     # Start ret. time
-            SearchParams.entries[3][1].insert(0,11111) # End ret. time
-            SearchParams.entries[4][1].insert(0,H3)    # Masses
-            SearchParams.entries[5][1].insert(0,2)     # Mass Tolerance (Da)
+            # Inserts default parameters into entries (Static mode)
+            self.entries[0][1].insert(0,default_scan_start)     # Start scan
+            self.entries[1][1].insert(0,default_scan_end)       # End scan
+            self.entries[2][1].insert(0,default_ret_start)      # Start ret. time
+            self.entries[3][1].insert(0,default_ret_end)        # End ret. time
+            self.entries[4][1].insert(0,default_masses)         # Masses
+            self.entries[5][1].insert(0,default_tolerance)      # Mass Tolerance (Da)
 
-        # In Dynamic Mode, create buttons and entry boxes
-        if self.search_optn.get() == "Dynamic":         # in dynamic mode
-            for child in self.entry_frame.winfo_children():         # destroys static mode stuff while dynamic
+        # In Dynamic Mode, recreate buttons and entry boxes
+        if self.search_optn.get() == "Dynamic":
+            for child in self.entry_frame.winfo_children():
                 child.destroy()
-            self.mass_range.set(0)                      # sets default "search by mass range" off
-
+            self.mass_range.set(0)                      # sets "search by mass range" off by default
             self.entry_frame = tk.Frame(self)           # populates frame with dynamic mode input
             self.entry_frame.grid(row=3, column = 0, sticky='w')
 
-            s_fields = ('Mass Tolerance (Da)',)
-            d_fields = ('Start ret. time', 'End ret. time')
+            # These lists contain only fields that are NOT affected by 'Search by mass range'
+            s_fields = ('Mass Tolerance (Da)',)                 # fields that appear in static mode that are not affected by Sbmr
+            d_fields = ('Start ret. time', 'End ret. time')     # fields that appear in dynamic mode that are not affected by Sbmr
 
             # Search by mass range button
-            self.mass_range_btn = tk.Checkbutton(self.entry_frame, text="Search by mass range: ", variable=self.mass_range, command=(lambda : change_range(self)))
-            self.mass_range_btn.grid(row=0,column=3, columnspan=2, sticky='news')
+            self.mass_range_btn = tk.Checkbutton(self.entry_frame, text="Search by mass range: ", variable=self.mass_range, command=(lambda : change_range(self, self.mass_field_ent)))
+            self.mass_range_btn.grid(row=0,column=1, columnspan=2, sticky='w')
+            button_tip = Hovertip(self.mass_range_btn, 'Specify masses of interest by\nmin, max, and interval size\n(rather than providing a list)', hover_delay=100)
 
-            # fixed 'Masses' to index 0 of entries. the entry will either serve as a mass list OR the min mass   # entries=['Masses', ...]?
-            # for dynamic searching                                                                              # TODO how does this work?
-            self.mass_field = tk.Label(self.entry_frame, width=20, text='Masses', anchor='w')
+            # 'Masses' field either serves as a mass list OR the min mass for search by mass range
+            self.mass_field = tk.Label(self.entry_frame, width=25, text='Masses', anchor='w')
             self.mass_field_ent = tk.Entry(self.entry_frame, width=8)
             self.mass_field.grid(row=3, column=0,sticky='news')
             self.mass_field_ent.grid(row=3, column=1,sticky='w')
-            self.mass_max = tk.Entry(self.entry_frame, width=8) #make entry, but don't show until needed
+            tip = Hovertip(self.mass_field_ent, 'List masses of interest. \nSeparate each mass with either \na space or a comma and a space.', hover_delay=100)
+
+            # 'Max Mass' and 'Mass Interval' fields for search by mass range
+            self.mass_max = tk.Entry(self.entry_frame, width=8)
+            max_tip = Hovertip(self.mass_max, 'Specify maximum mass of interest.\nEx: Entering 9 in (1,9,2) yields\nthe mass range [1,3,5,7,9].', hover_delay=100)
             self.mass_interval = tk.Entry(self.entry_frame, width=8) #make entry, but don't show until needed
+            interval_tip = Hovertip(self.mass_interval, 'Specify interval for masses of interest.\nEx: Entering 2 in (1,9,2) yields\nthe mass range [1,3,5,7,9].', hover_delay=100)
+
+            # Append info from 3 entries to SearchParams.entries
+                # entries = [(masses list or min mass, mass max or None, mass_interval or None)]
+                # where 2nd and 3rd elements contain None if in search by mass range
+                # If we want separate entries for masses and min_mass (which might be necessary for separate tips), we will have to redesign and deal with this entries list differently.  
             SearchParams.entries.append(('Masses',self.mass_field_ent,self.mass_max,self.mass_interval))
 
-            i=4 #start grid at row 3
-
-            # masses will be at row 3 (label at column 0, entry at column 1)
+            i=4 
             for field in s_fields:
                 lab = tk.Label(self.entry_frame, width=20, text=field, anchor='w')
                 ent = tk.Entry(self.entry_frame, width=8)
                 lab.grid(row=i, column=0,sticky='news')
                 ent.grid(row=i, column=1,sticky='w')
+                mass_tolerance_tip= Hovertip(ent, 'Specify mass tolerance.\nEx: A tolerance of 2 will count\nmasses 15180 through 15184\ntowards the mass 15182.', hover_delay=100)
                 SearchParams.entries.append((field, ent))
                 i+=1
 
-            for files in SearchParams.abrv_filenames:
-                lab = tk.Label(self.entry_frame, width=20, text=str(files), anchor='w')
+            space = tk.Label(self.entry_frame, width=20, text='\n', anchor='w').grid(row=i, column=0, sticky='w')
+            i+=1
+
+            # I might want to redo this in the future because I feel like making & saving the fields 'Start ret. time' and 'End ret. time' along with each entry in this list is a little redundant, and I'm not sure how much space tkinter field objects take up, but not having them would save that space and some searching time when we use this list (which we do a lot). The downside is that we use this a lot so it might take some time to untangle. I also think it would just look nicer with 'Start...' and 'End...' as headers and just the entries in two columns, but it's not important. 
+            # On the same note, I'm not sure the file names are necessary either, but maybe they're used in graphing (I should check). If not, we could save the space taken up by those labels too.
+            for file in SearchParams.abrv_filenames:
+                lab = tk.Label(self.entry_frame, width=20, text=str(file), anchor='w')
                 lab.grid(row=i, column=0,columnspan=3,sticky='news')
-                SearchParams.dynamic_entries.append(files)
+                SearchParams.dynamic_entries.append(file)
                 j=2
                 for field in d_fields:
                     lab = tk.Label(self.entry_frame, width=20, text=field, anchor='w')
                     ent = tk.Entry(self.entry_frame, width=8)
                     lab.grid(row=i, column=j, columnspan=1, sticky='news')
                     ent.grid(row=i, column=j+1, sticky='w')
+                    # create tips for retention time entries in dynamic mode (stupid way)
+                    if field == 'Start ret. time':
+                        ret_start_tip = Hovertip(ent, 'Specify shortest retention time to be considered for\n' + file, hover_delay=100)
+                    else:
+                        ret_end_tip = Hovertip(ent, 'Specify longest retention time to be considered for\n' + file, hover_delay=100)
                     SearchParams.dynamic_entries.append((field, ent))
                     j+=2
                 i+=1
 
+            # Inserts default parameters into entries (Dynamic mode)
+            # Masses / Mass Range and Mass Tolerance
+            SearchParams.entries[0][1].insert(0,default_masses)         # since search by mass range is off by default, show mass list by default (changes to min mass in change_range())
+            SearchParams.entries[0][2].insert(0,default_max)
+            SearchParams.entries[0][3].insert(0,default_interval)
+            SearchParams.entries[1][1].insert(0,default_tolerance)
+            # Start and End Ret. Times (per file)
+            n = 0
+            while (n < len(SearchParams.dynamic_entries)):              # going through every element of dynamic_entries, which has 3 elements per uploaded file
+                start = SearchParams.dynamic_entries[n+1]               # every second element contains ('Start ret. time', Entry)
+                end = SearchParams.dynamic_entries[n+2]                 # every third element contains ('End ret. time', Entry)
+                start[1].insert(0, default_ret_start)                   # insert default value into entry
+                end[1].insert(0, default_ret_end)                       # insert default value into entry
+                n += 3                                                  # move on to next file
 
-    # PROCESS_MSALIGN_FILES(): checks for potential errors (no files, empty search params) before
-    # processing (and tracking progress on) input files according to user-given search parameters.
+
+    # PROCESS_MSALIGN_FILES(): Checks for search parameter errors (no files, empty search params, conflicts with mass interval and mass tolerance) before processing (and tracking progress on) input files according to user-given search parameters.
     def process_msalign_files(self):
         # timing start
         start_time = timeit.default_timer()
                 
-        # Start assuming no Error
+        # Start assuming no error
+        # Errors occur if there are no files to process or any empty search parameters in Static or Dynamic mode
         error = False
-        
-        # Check for potential Errors
-        # No files were uploaded (nothing to process)
+
+        # No files uploaded (nothing to process)
         if len(App.msalign_filearray) == 0:
-            mb.showerror("Warning","There are no files to process.")
-        # Static Mode: some search parameter field(s) not filled out
+            mb.showerror("Warning", "There are no files to process.")
+
+        # Static Mode
+        # Warning: Empty search parameter field
         if self.search_optn.get() == "Static":
-            for field in SearchParams.entries:
-                if len(field[1].get()) == 0:
+            for entry in SearchParams.entries:
+                if len(entry[1].get()) == 0:
                     mb.showerror("Warning", "All search parameter fields must be filled out.")
                     error = True
                     break
-        # Dynamic Mode: some search parameter field(s) not filled out
+
+        # Dynamic Mode
         if self.search_optn.get() == "Dynamic":
-            # in main entries (default masses search)
-            for field in SearchParams.entries:
-                if len(field[1].get()) == 0:
-                    mb.showerror("Warning", "All search parameter fields must be filled out.")
+            # Warning: Empty 'Masses'/'Min Mass' or 'Mass Tolerance' entries 
+            # TO DO: FIX ERROR where this only checks first entry, and not the max or interval entries
+                # entries = [('Masses', Entry obj, Entry obj, Entry obj), ('Mass Tolerance (Da)', Entry object)]
+                # where the Entry objects contain mass list / min mass, max mass, mass interval, and mass tolerance, respectively
+            for entry in SearchParams.entries:
+                if len(entry[1].get()) == 0:
+                    mb.showerror("Warning", "Please fill out all mass information.")
+                    # mb.showerror("Warning", "All search parameter fields must be filled out.")
                     error = True
                     break
-            # in dynamic entries (search by mass range)
-            for field in range(len(SearchParams.dynamic_entries)):
-                if len(SearchParams.dynamic_entries[field]) == 2:
-                    if len(SearchParams.dynamic_entries[field][1].get()) == 0:
-                        mb.showerror("Warning", "All search parameter fields must be filled out.")
+            
+            # Warning: Overlap between 'Mass Interval' and 'Mass Tolerance'
+            # The mass interval must be more than twice as large as the mass tolerance, otherwise one datapoint may be counted towards two neighboring masses of interest. Once we have the above issue fixed we can put this in the same for loop as checking the entries above and won't need  so many if statements.
+            if self.mass_range.get() == 1:
+                if (int(SearchParams.entries[1][1].get()) >= math.floor(int(SearchParams.entries[0][3].get())/2)):
+                    mb.showerror("Warning", "Overlap between mass interval and mass tolerance.\nInterval must be more than twice as large as tolerance.")
+                    error = True
+
+            # Warning: Empty 'Start Ret. Time' or 'End Ret. Time' entries
+                # dynamic_entries = ['filename1.msalign', ('Start ret. time', Entry object), ('End ret. time', Entry object), ...]
+                # where the entries contain the start and end retention times, respectively.
+            # I think this search for errors will get slightly simpler if we restructure this list to remove the file names and fields (just contain the entries, which are what we work with here). I just have to check and make sure we don't use the file names in graphing, or if we do, that we can't do it another way.
+            for entry in range(len(SearchParams.dynamic_entries)):              # if restructure, directly access entry objs like above
+                if len(SearchParams.dynamic_entries[entry]) == 2:               # if restructure, switch 2 to 1 here
+                    if len(SearchParams.dynamic_entries[entry][1].get()) == 0:
+                        mb.showerror("Warning", "Please fill out min and max retention times for all files.")
+                        # mb.showerror("Warning", "All search parameter fields must be filled out.")
                         error = True
                         break
 
-        # If there are files to process & no errors, process msalign files according to search params
+        # If there are files to process & no errors, process msalign files according to search parameters
         if len(App.msalign_filearray) > 0 and error == False:
-            # create loading box
+            # Create loading box
             self.loading = tk.Label(self, textvariable=self.e)
             self.loading.grid(column=0, row=2, columnspan=1, sticky="w")
-            # for i=1...# of input files, update progress then process ith file
+            # Process each file, updating progress in between
             for i in range(1,len(App.msalign_filearray),2):
                 self.update_progress((i/len(App.msalign_filearray)))
                 SearchParams.process(self,App.msalign_filearray[i])
@@ -688,106 +765,89 @@ class SearchParams(tk.Frame):
 
         # timing end
         total_time = timeit.default_timer() - start_time
-        # output timing data to diff files to see static vs. dynamic performance
+        # Output timing data to diff files to see static vs. dynamic performance (should just depend on size of 'Masses' list vs. list created by mass range)
         if self.search_optn.get() == "Static":
             print('SearchParams \t process_static_msalign_files \t', total_time)
-            with open("timing_0_process_static_msalign_files_blah.csv", "a") as out_file:
-                out_file.write(str(total_time))
-                out_file.write("\n")
+            # with open("timing_0_process_static_msalign_files.csv", "a") as out_file:    # timing output file for testing
+                # out_file.write(str(total_time))
+                # out_file.write("\n")
         if self.search_optn.get() == "Dynamic":
             print('SearchParams \t process_dynamic_msalign_files \t', total_time)
-            with open("timing_0_process_static_dynamic_files_blah.csv", "a") as out_file:
-                out_file.write(str(total_time))
-                out_file.write("\n")
+            # with open("timing_0_process_static_dynamic_files.csv", "a") as out_file:    # timing output file for testing
+                # out_file.write(str(total_time))
+                # out_file.write("\n")
 
         
-    # UPDATE_PROGRESS(): updates progress as msalign files are being processed.
-    # called for each input file alongside process() in process_msalign_files().
-    # this fn updates the progress bar and sends a message in case of error.
+    # UPDATE_PROGRESS(): updates progress as msalign files are being processed. This function updates the progress bar. In case of any progress-specific errors (the progress calculation yields an unexpected and undecipherable result) the progress bar displays an error message, progress resets to 0, and the upload continues.
+    # This function is called for each input file alongside process() in process_msalign_files().
+    #
+    # TO DO: I don't think this was timed properly. This function is called continuously, so there should be a variable outside of this that's summing the total_time we get each time we run it.
     def update_progress(self,progress):
         # timing start
         start_time = timeit.default_timer()
         
-        barLength = 15                  # modify this to change the length of the progress bar
+        barLength = 15          # modify to change the length of the progress bar
         status = ""
-        # convert to float if progress is int (should be under our control, TO DO check)
+
+        # if progress is int, convert to float
         if isinstance(progress, int):
             progress = float(progress)
-        # error if progress not float
+
+        # if progress is not float, display 'error' for status, reset progress to 0, and continue
         if not isinstance(progress, float):
             progress = 0
             status = "error: progress var must be float\r\n"
-        # error if progress negative
+
+        # if progress is negative, display 'Halt' for status, reset progress to 0, and continue
         if progress < 0:
             progress = 0
             status = "Halt...\r\n"
-        # done if progress = 1
+
+        # if progress is 1, upload is done
         if progress >= 1:
             progress = 1
             status = "Done...\r\n"
+
+        # update progress bar
         block = int(round(barLength*progress))
         progresstext = "\rLoading (%): [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), int(progress*100), status)
         self.e.set(progresstext)
-        #sys.stdout.write(progresstext)
 
         # timing end
         total_time = timeit.default_timer() - start_time
         print('SearchParams \t update_progress \t\t', total_time)
-        with open("timing_0_update_progress_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_update_progress.csv", "a") as out_file:         # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
 
-    ''' WIP PANDAS IMPLEMENTATION IN THIS FUNCTION
-    Note: This has been a really slow process because I can't test this function 
-    independently, so unless I get it working exactly perfectly with output in the
-    exact right format, the code breaks down in concurrent & later processes, making
-    it hard to tell what's happening here '''
-    # PROCESS(): processes an msalign file, preparing its data to be used in calculations.
-    # called for each input file alongside update_progress() in process_msalign_files().
-    # An example msalign file looks like this:
-        # BEGIN IONS
-        # ID=5
-        # SCANS=5
-        # RETENTION_TIME=13.20
-        # ACTIVATION=
-        # 3003.671375 165210.66
-        # END IONS
-        #
-        # (repeat)
+    # PROCESS(): takes a file as input, reads the entire file as a string, separates the information in the string and sorts appropriate info into two arrays (ms1_ions and scan_ions), then calls mass_selection on the scan_ions array.
     def process(self,filename):
         # timing start
         start_time = timeit.default_timer()
         
-        # For each scan, the format is [ID,SCANS,RETENTION_TIME,[ARRAY OF MS1 IONS]]
-        # The array of MS1 ions is [Mass,Intensity,Charge]
-        global scan_ions # for now, leave global, but this will be a passed array eventually
-        scan_ions = []
+        global scan_ions        # for now, leave global, but this will be a passed array eventually
+        scan_ions = []          # ions to perform mass selection on
         temp_array = [0,0,0,0]  # temp array for each scan
         ms1_ions = []           # last in scan array
-        ms1events = 0           # times actual data is encountered (counts each digit)
+        ms1events = 0           # TO DO: do we use this counter at all?
         convert = []            # file data fills here as it is being converted
-        lines = []              # lines/rows of data fill here until pandas switch works
+        lines = []              # lines/rows of data fill here 
 
-        # RMV_CHARS(): takes a string and returns a string of only the numbers and .'s,
-        # called on lines gathered from input files to filter out headings/labels
-        # while gathering data for calculations (e.g. RETENTION_TIME=13.20 -> 13.20)
+        # RMV_CHARS(): takes a string and returns a string of only the numbers and periods. 
+        # This function will be called on lines gathered from input msalign files, and is intended to filter out headings/labels to gather data for calculations. 
+        # Ex: rmv_chars('RETENTION_TIME=13.20') = '13.20'
         def rmv_chars(string):
             getVals = list([val for val in string
                 if (val.isnumeric() or val==".")])
             return "".join(getVals)
 
-        # Open file
+        # Read input file as one massive string
         with open(filename) as fp:
-            data = fp.read()                        # reads whole file as massive string
-        ''' USE PANDAS to open file (reads csv file row by row)
-        should only require the line below '''
-        #df = pd.read_csv(filename)
+            data = fp.read()
 
-        # Separate file data by line (append to lines array)
-        # currently we go thru each char in file, remove commas, newlines, and spaces
-        # and append to lines every time one of these chars is encountered (because
-        # usually new types of data come after newlines and commas).
+        # Read through the string obtained from the file and sort it into "lines". 
+        # Lines consist of the data between each comma or newline character. 
         for i in data:
             if i == ',' or i == '\n':
                 link = "".join(convert)
@@ -797,77 +857,62 @@ class SearchParams(tk.Frame):
                     convert = []
             else:
                 convert.append(i)
-        ''' PANDAS automatically sorts data by rows, so no need to replace above when
-        implementation is complete - can just delete above and move to next block '''
 
-        # Extract data (decimal numbers) from lines using rmv_chars()
-        # switch to pandas means we will no longer be parsing through this
-        # as a string, so this will change, but make sure you understand the
-        # general structure first.
+        # Extract numerical data from lines using rmv_chars(), defined above. 
+        # By inspection, the data in the input (.msalign) files is in the form:
+            # BEGIN IONS
+            # ID=int
+            # SCANS=int
+            # RETENTION_TIME=float
+            # ACTIVATION= 
+            # float float int (ion 1 data?)
+            # float float int (ion 2 data?)
+            # ...
+            # END IONS
+            #
+            # (repeat above)
+        # So we use these headers (and a temp array) to sort the appropriate data into ms1_ions and scan_ions.
+        # TO DO: Is this the exact format every time? If so we can probably rewrite the following loop to be a bit more efficient.
         while (len(lines)-1)>0:
             text = str(lines[0])
             if text.startswith('ID='):
-                temp_array[0] = int(rmv_chars(text))
+                temp_array[0] = int(rmv_chars(text))        # append id no. to temp array
                 self.update()
-            elif text.startswith('SCANS='):
+            elif text.startswith('SCANS='):                 # append scan no. to temp array
                 temp_array[1] = int(rmv_chars(text))
-            elif text.startswith('RETENTION_TIME='):
+            elif text.startswith('RETENTION_TIME='):        # append ret. time to temp array
                 temp_array[2] = float(rmv_chars(text))
             elif text[0].isdigit():
                 while lines[0]!='END IONS':
-                    ms1_ions = np.append(ms1_ions,[float(s) for s in lines[0].split("\t")])
+                    ms1_ions = np.append(ms1_ions,[float(s) for s in lines[0].split("\t")])     # append ions to ms1_ions
                     del lines[0]
-                ms1_ions = np.reshape(ms1_ions,(int(len(ms1_ions)/3),3))
+                ms1_ions = np.reshape(ms1_ions,(int(len(ms1_ions)/3),3))    # each element now contains 3 pieces of data for an ion, the start and end times and the intensity?
                 temp_array[3] = ms1_ions
                 scan_ions.append(temp_array)
                 temp_array = [0,0,0,0]
                 ms1_ions = []
                 ms1events+=1
             del lines[0]
-        ''' USE PANDAS to remove unnecessary chars (keep data only)
-        each line of data from the input files is in a separate row, in
-        the second column (the first column numbers the rows 0,1,2...).
-        to read and edit this data using pandas, it seems like we need
-        headers, but we don't have them... '''
-        #for index, row in df.iterrows():
-            # almost same loop as above goes here, but remove references to lines
-            # for testing: to print the second column using df.iterrws()?
-            #print(index, row['BEGIN IONS'])     # no header bc format is diff
-
-        # for testing: to print the first block (up to END IONS) with pandas
-        #print(df.iloc[0:6])
-            
-        # at this point, scan_ions should be the same as before implementing pandas,
-        # so we shouldn't necessarily have to change anything in mass_selection(),
-        # but we may want to reformat the scan_ions array for efficiency if possible.
-
-        ''' TEMPORARILY have scan_ions empty while messing with pandas
-        removes some of the errors I'm getting while working on this'''
-        #scan_ions = []
         
-        # IMPORTANT! Final format of the np array (scan_ions?):
-            # For each scan, the format is [ID, SCANS, RETENTION_TIME, ARRAY OF MS1 IONS]
-            # where ARRAY OF MS1 IONS = [Mass, Intensity, Charge]
-        # forced pass, will change later to be user-controlled
-        SearchParams.mass_selection(self,scan_ions)
-
-        # timing end
+        # timing end (end timing before calling next function)
         total_time = timeit.default_timer() - start_time
         print('SearchParams \t process \t\t\t', total_time)
-        with open("timing_0_progress_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_progress.csv", "a") as out_file:        # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
-
-        # TESTING remove later (hoping this will end here)
-        #
+        # Perform mass selection (defined below) on scan ions
+        SearchParams.mass_selection(self,scan_ions)
         
         
     # MASS_SELECTION(): given scan_ions array from process(), where
     # scan_ions = [[[ID, SCANS, RETENTION_TIME, [Mass, Intensity, Charge]]],...],
         # gathers parameter data from user input
         # converts all mass data (idx, val) from string to float
-        # forms found_masses, masses, tolerance arrays from mass data & parameters
+        # forms found_masses, masses, tolerance arrays from mass data & parameters, where 
+            # found_masses = 
+            # masses = 
+            # tolerance = 
     def mass_selection(self,scan_ions):
         # timing start
         start_time = timeit.default_timer()
@@ -891,7 +936,7 @@ class SearchParams(tk.Frame):
             retention_min = float((SearchParams.dynamic_entries[SearchParams.dynamic_counter][1]).get())
             retention_max = float((SearchParams.dynamic_entries[SearchParams.dynamic_counter+1][1]).get())
             SearchParams.dynamic_counter+=3
-            if self.mass_range.get() == 1:                              # gather 'Search by masses' data
+            if self.mass_range.get() == 1:                              # gather 'Search by masses range' data
                 min_mass = float(SearchParams.entries[0][1].get())
                 max_mass = float(SearchParams.entries[0][2].get())
                 mass_interval = float(SearchParams.entries[0][3].get())
@@ -906,7 +951,6 @@ class SearchParams(tk.Frame):
             else:                                                       # 'Search by masses' not selected
                 input_masses = str(SearchParams.entries[0][1].get())    # only additional data to gather is
                 mass_tolerance = float(SearchParams.entries[1][1].get())    # Masses and Mass tolerance (Da)
-
 
         found_masses = []
         graph_found_masses = []         # this array will pass on 0 intensity values for QC graphs
@@ -960,17 +1004,19 @@ class SearchParams(tk.Frame):
         # timing end
         total_time = timeit.default_timer() - start_time
         print('SearchParams \t mass_selection \t\t', total_time)
-        with open("timing_0_mass_selection_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_mass_selection.csv", "a") as out_file:      # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
 
+
+    # CURRENT TO DO OVER HERE
     # MASS_QUANTIFICATION(): Given found_masses, masses, and mass_tolerance arrays
     # from mass_selection(), calculates intensities of masses and appends these
     # values to summed_intensities array. These are used to calculate total_intensity,
     # which is used alongside summed_intesities to calculate percent_intesities,
     # which contains the ratio of the individual intensities of the masses to the
-    # total intensity.
+    # total intensity. Also contains warning for no masses found (per file).
     def mass_quantification(self,found_masses,masses,mass_tolerance):
         # timing start
         start_time = timeit.default_timer()
@@ -1008,14 +1054,15 @@ class SearchParams(tk.Frame):
         # timing end
         total_time = timeit.default_timer() - start_time
         print('SearchParams \t mass_quantification \t\t', total_time)
-        with open("timing_0_mass_quantification_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_mass_quantification.csv", "a") as out_file:             # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
 
 """
 QUANT OUTPUT
 Takes calculated data from SearchParams to form output graphs & csv files.
+
 """
 class QuantOutput(tk.Frame):
     averaged_data = [] #[[averages],[stdev]]
@@ -1027,14 +1074,16 @@ class QuantOutput(tk.Frame):
         label.grid(column=0, row=0, sticky='w')
 
         # Calculate Avg & Std Dev Button
-        button1 = tk.Button(self, text="Calculate Avg and Stdev", fg='green',
+        button1 = tk.Button(self, text="Calculate Avg and Stdev", bg="green", fg="white",
                             command=lambda: self.analyze_data())
         button1.grid(column=0, row=1, sticky='w')
+        calculations_tip = Hovertip(button1, 'Perform calculations based on entered search parameters', hover_delay=500)
 
         # Search Parameters Button
         button2 = ttk.Button(self, text="Search Parameters",
                             command=lambda: controller.show_frame(SearchParams))
         button2.grid(column=1, row=1, sticky='w')
+        searchparams_tip = Hovertip(button2, 'Return to Search Parameters page', hover_delay=500)
 
         self.controller = controller
 
@@ -1097,9 +1146,9 @@ class QuantOutput(tk.Frame):
         # timing end
         total_time = timeit.default_timer() - start_time
         print('QuantOutput \t analyze_data \t\t\t', total_time)
-        with open("timing_0_analyze_data_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_analyze_data.csv", "a") as out_file:                # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
 
     # CALCULATE_AVG_STDEV(): calculates average and standard deviation of grouped data
@@ -1133,9 +1182,9 @@ class QuantOutput(tk.Frame):
         # timing end
         total_time = timeit.default_timer() - start_time
         print('QuantOutput \t analyze_data \t\t\t', total_time)
-        with open("timing_0_analyze_data_blah", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_analyze_data", "a") as out_file:            # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
         # return array with avg & std dev vals for all masses
         calculated_group_data = [averaged_values,stdev_values]
@@ -1171,9 +1220,9 @@ class QuantOutput(tk.Frame):
         # timing end
             total_time = timeit.default_timer() - start_time
             print('QuantOutput \t output_quantification_file \t', total_time)
-            with open("timing_0_output_quantification_file_blah.csv", "a") as out_file:
-                out_file.write(str(total_time))
-                out_file.write("\n")
+            # with open("timing_0_output_quantification_file.csv", "a") as out_file:      # timing output file for testing
+                # out_file.write(str(total_time))
+                # out_file.write("\n")
 
 
 """
@@ -1191,19 +1240,22 @@ class QCGraphs(tk.Frame):
         label.grid(column=0, row=0, sticky='w')
 
         # Show QC Graphs Button
-        button1 = tk.Button(self, text="Show QC Graphs", fg ='green',
+        button1 = tk.Button(self, text="Show QC Graphs", bg="green", fg="white",
                             command=lambda: self.makegraph())
         button1.grid(column=0, row=1, sticky='w')
+        graphs_tip = Hovertip(button1, 'Show output graphs', hover_delay=500)         # this needs a better message
 
         # Search Parameters Button
         button2 = ttk.Button(self, text="Search Parameters",
                             command=lambda: controller.show_frame(SearchParams))
         button2.grid(column=1, row=1, sticky='w')
+        searchparams_tip = Hovertip(button2, 'Return to Search Parameters page', hover_delay=500)
 
         # New Analysis Button
         button3 = tk.Button(self, text="New Analysis",
-                            command=lambda: controller.new_analysis())
+                            command=lambda: controller.new_analysis(), state=DISABLED)      # temporarily disabled
         button3.grid(column=2, row=1, sticky='w')
+        newanalysis_tip = Hovertip(button3, 'Currently unavailabled', hover_delay=500)      # temporarily unavailable
 
 
     # MAKEGRAPH(): uses data from calculations above to form QC Graphs,
@@ -1342,9 +1394,9 @@ class QCGraphs(tk.Frame):
         # timing end
         total_time = timeit.default_timer() - start_time
         print('QCGraphs \t makegraph \t\t\t', total_time)
-        with open("timing_0_makegraph_blah.csv", "a") as out_file:
-            out_file.write(str(total_time))
-            out_file.write("\n")
+        # with open("timing_0_makegraph.csv", "a") as out_file:       # timing output file for testing
+            # out_file.write(str(total_time))
+            # out_file.write("\n")
 
         # QC Graph output is last step of app but don't close app, just return
         return
